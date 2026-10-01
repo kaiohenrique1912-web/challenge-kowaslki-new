@@ -93,7 +93,7 @@ docs/
 
 ## 3. Fluxo de uma busca (ponta a ponta)
 
-1. **URL** `/comprar/imovel/pinheiros?tipos=apartamento&quartos=3&ordem=menor-preco`
+1. **URL** `/comprar/imovel/pinheiros?tipos=apartamento&quartos=3&ordem=menor-valor`
    (contrato completo no §8).
 2. `useSearchFilters()` (web) faz `parseSearchParams()` de `packages/shared/search` →
    objeto `SearchFilters` tipado + `sort`. Alterar um filtro chama `serializeSearchParams()`
@@ -127,7 +127,7 @@ scalar DateTime
 
 enum PropertyType { APARTMENT HOUSE CONDO_HOUSE STUDIO }
 enum PropertyStatus { DRAFT ACTIVE INACTIVE }
-enum SortOrder { RELEVANCE NEWEST PRICE_ASC PRICE_DESC PRICE_PER_M2_ASC }
+enum SortOrder { NEAREST RELEVANCE NEWEST PRICE_ASC PRICE_DESC RENTAL_YIELD_DESC }
 enum PublishedWithin { TODAY LAST_7_DAYS LAST_15_DAYS LAST_30_DAYS LAST_2_MONTHS LAST_6_MONTHS }
 enum PropertyBadge { EXCLUSIVE PRICE_DROP GREAT_PRICE NEW_LISTING RENTED }
 enum AmenityCategory { CONDOMINIUM FEATURES FURNITURE WELLBEING APPLIANCES ROOMS ACCESSIBILITY }
@@ -136,6 +136,7 @@ enum AmenityCode { GYM GREEN_AREA TOY_LIBRARY # … lista completa em business-r
 
 input IntRange { min: Int, max: Int }
 input BoundingBox { north: Float!, south: Float!, east: Float!, west: Float! }
+input LatLngInput { lat: Float!, lng: Float! }
 
 input PropertySearchFilters {
   neighborhoodSlugs: [String!]
@@ -165,6 +166,7 @@ type Neighborhood {
   center: LatLng!
   bounds: Bounds!
   medianPricePerM2: Int!
+  medianRentPerM2: Int!
 }
 
 type LatLng { lat: Float!, lng: Float! }
@@ -200,6 +202,9 @@ type Property {
   nearSubway: Boolean!
   isExclusive: Boolean!
   isRented: Boolean!
+  monthlyRent: Int                    # só quando isRented
+  estimatedRent: Int!
+  rentalYield: Float!                 # fração mensal (0.0045 = 0,45% a.m.)
   description: String!
   amenities: [Amenity!]!
   unavailableAmenities: [Amenity!]!   # aplicáveis ao tipo e ausentes
@@ -236,6 +241,7 @@ type Query {
   searchProperties(
     filters: PropertySearchFilters
     sort: SortOrder = RELEVANCE
+    origin: LatLngInput      # só para NEAREST; se ausente o serviço deriva (business-rules §4.2)
     first: Int = 24          # 0…48 (0 = só contagem)
     after: String
   ): PropertyConnection!
@@ -277,7 +283,8 @@ CREATE TABLE neighborhoods (
   zone TEXT NOT NULL,
   center_lat REAL NOT NULL, center_lng REAL NOT NULL,
   north REAL NOT NULL, south REAL NOT NULL, east REAL NOT NULL, west REAL NOT NULL,
-  median_price_per_m2 INTEGER NOT NULL DEFAULT 0
+  median_price_per_m2 INTEGER NOT NULL DEFAULT 0,
+  median_rent_per_m2 INTEGER NOT NULL
 );
 
 CREATE TABLE properties (
@@ -306,6 +313,9 @@ CREATE TABLE properties (
   near_subway INTEGER NOT NULL DEFAULT 0,
   is_exclusive INTEGER NOT NULL DEFAULT 0,
   is_rented INTEGER NOT NULL DEFAULT 0,
+  monthly_rent INTEGER,                   -- aluguel atual, só se is_rented
+  estimated_rent INTEGER NOT NULL,        -- calculado pelo serviço (business-rules §2.1)
+  rental_yield REAL GENERATED ALWAYS AS (CAST(estimated_rent AS REAL) / sale_price) STORED,
   description TEXT NOT NULL,
   photo_count INTEGER NOT NULL DEFAULT 0, -- desnormalizado (card e score)
   relevance_score REAL NOT NULL DEFAULT 0,
@@ -346,7 +356,8 @@ dispensar tabela de catálogo; o catálogo vive em `shared/domain/amenities.ts`.
 CREATE INDEX idx_prop_relevance ON properties(status, relevance_score DESC, id DESC);
 CREATE INDEX idx_prop_newest    ON properties(status, published_at DESC, id DESC);
 CREATE INDEX idx_prop_price     ON properties(status, sale_price, id);
-CREATE INDEX idx_prop_ppm2      ON properties(status, price_per_m2, id);
+CREATE INDEX idx_prop_yield     ON properties(status, rental_yield DESC, id DESC);
+-- NEAREST não tem índice: a distância é calculada sobre o conjunto já filtrado (ver §6)
 -- localização
 CREATE INDEX idx_prop_geo       ON properties(status, lat, lng);
 CREATE INDEX idx_prop_neigh     ON properties(neighborhood_id, status);
@@ -388,6 +399,10 @@ páginas profundas.
   para outra ordenação é rejeitado (`BAD_USER_INPUT`, field `after`).
 - Próxima página: `WHERE … AND (col, id) < (?, ?)` (desc) ou `>` (asc) — row values do
   SQLite — `LIMIT first + 1`; o item extra define `hasNextPage`.
+- `NEAREST`: a "coluna" é a expressão de distância
+  `(lat - :olat)*(lat - :olat) + ((lng - :olng)*:coslat)*((lng - :olng)*:coslat)`, usada no
+  `ORDER BY` e no keyset; a origem entra no cursor para que a página seguinte use a mesma.
+  Custo aceitável porque roda sobre o conjunto filtrado (bairro/bbox); medir na Etapa 3.
 - `totalCount` é um `SELECT COUNT(*)` separado com o mesmo WHERE, só executado quando o campo
   é pedido.
 - No web, `useInfiniteQuery`; botão "Ver mais" chama `fetchNextPage`. Mudar filtro/ordem
@@ -422,12 +437,18 @@ milhares de pontos:
   mini-card do imóvel (`property(id)`).
 - Hover num card da lista destaca a célula que contém aquele imóvel (o card sabe sua lat/lng;
   o web encontra a célula pela mesma fórmula, exportada por `shared/search/grid.ts`).
-- **"Buscar ao mover o mapa"** (toggle, ligado por padrão — suposição): `moveend` com
-  debounce de 400 ms grava `bbox` na URL (replace, sem poluir o histórico) e remove
-  `neighborhoodSlugs`; a lista e a contagem passam a refletir a área visível. Desligado, o
-  mapa só atualiza os clusters e mostra o botão "Buscar nesta área".
-- Ao escolher um bairro no autocomplete, o mapa faz `fitBounds` nos `bounds` do bairro e a
-  busca usa `neighborhoodSlugs` (não bbox).
+- **Bairro × área do mapa** (regra em business-rules §4.1):
+  - Escolher um bairro no autocomplete grava `bairros` na URL, **remove** `area-mapa`, e o
+    mapa faz `fitBounds` nos `bounds` do bairro. Lista: `neighborhoodSlugs`.
+  - `moveend` causado pelo usuário (não pelo `fitBounds` programático), com debounce de
+    400 ms, grava `area-mapa` na URL (replace, sem poluir o histórico) **mantendo** `bairros`.
+  - Com `area-mapa` presente, o web envia à lista **só** `bbox` (sem `neighborhoodSlugs`);
+    o bairro continua no campo de busca, no cabeçalho e como origem de "Mais próximos".
+  - Os clusters sempre recebem `bbox` + filtros, nunca `neighborhoodSlugs`.
+  - Toggle **"Buscar ao mover o mapa"** (ligado por padrão): desligado, o `moveend` só
+    atualiza os clusters e mostra o botão "Buscar nesta área".
+  - Essa montagem fica numa função pura `toApiFilters(urlState, mode)` em
+    `shared/search`, com testes.
 - Chips de filtros ativos sobrepostos ao topo do mapa, removíveis com ×.
 - **(planejado, opcional)** "Desenhar área de busca": polígono enviado como lista de pontos;
   o servidor filtra por bbox do polígono no SQL e refina com point-in-polygon em memória.
@@ -459,7 +480,12 @@ Query string (nomes em pt-BR, valores legíveis; ausente = "Tanto faz"):
 | `publicado` | `7d` (`hoje`,`7d`,`15d`,`30d`,`2m`,`6m`) | `publishedWithin` |
 | `mobiliado` / `metro` / `exclusivo` / `alugado` | `sim` \| `nao` | booleanos |
 | `itens` | `piscina,academia` (slug kebab-case do `AmenityCode`) | `amenities` |
-| `ordem` | `relevancia`, `recentes`, `menor-preco`, `maior-preco`, `menor-preco-m2` | `sort` |
+| `ordem` | `proximos`, `relevancia`, `recentes`, `menor-valor`, `maior-valor`, `maior-retorno` | `sort` |
+
+Sobre o formato: o original usa segmentos de path com tokens (`/q-ate-400000`); optamos por
+query string legível porque é trivial de serializar, testar e estender. Como parse e
+serialização ficam isolados em `url.ts`, migrar para o formato do original depois não afeta
+o resto do código.
 
 Parse e serialização ficam **só** em `packages/shared/search/url.ts`, com teste de ida e volta.
 Valores inválidos na URL são descartados silenciosamente (a página nunca quebra por URL ruim).
@@ -471,7 +497,9 @@ Valores inválidos na URL são descartados silenciosamente (a página nunca queb
   TanStack Query; estado efêmero de UI fica local no componente.
 - **Layout desktop:** header → `FilterBar` (chips rápidos: Tipos, Valor, Quartos, Vagas,
   Mais filtros) → split lista (grid 3 colunas, ~60%) | mapa sticky (~40%).
-- **Mobile (< 768 px):** lista em 1 coluna; botão flutuante "Mapa"/"Lista"; chips com rolagem
+- **Alvo principal: desktop/notebook** (≥ 1280 px; testar também em 1366×768, comum em
+  notebooks). Mobile tem prioridade baixa e será revisado depois.
+- **Mobile (< 768 px), quando for feito:** lista em 1 coluna; botão flutuante "Mapa"/"Lista"; chips com rolagem
   horizontal; "Mais filtros" em tela cheia.
 - **Estados obrigatórios** em toda tela com dados: carregando (`Skeleton`), vazio (mensagem +
   ação "Limpar filtros"), erro (mensagem + "Tentar novamente").
@@ -502,6 +530,10 @@ cobrindo seus estados. Detalhes em `docs/design-system.md` (criado na Etapa 4).
 - **Lint/format:** Biome. **Testes:** `bun test`, arquivos `*.test.ts(x)` ao lado do código.
   Repository/serviço testados contra um SQLite em memória com seed pequeno determinístico.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
+- **Multiplataforma (Windows, Linux, macOS):** só Bun é pré-requisito (Node não é exigido).
+  Scripts de `package.json` não usam sintaxe de shell específica (`rm -rf`, `VAR=x cmd`,
+  `&`); tarefas não triviais viram scripts TypeScript executados com `bun`. Caminhos com
+  `path.join`/`import.meta.dir`, nunca `/` ou `\` literais. `.gitattributes` força `eol=lf`.
 
 ## 12. Decisões registradas
 

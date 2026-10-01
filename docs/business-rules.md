@@ -46,6 +46,7 @@
 | `nearSubway` | booleano | sim (padrão `false`) | "Metrô próx." — estação a até ~1 km (no seed é calculado; no cadastro, informado). |
 | `isExclusive` | booleano | sim (padrão `false`) | "Exclusivo QuintoAndar". |
 | `isRented` | booleano | sim (padrão `false`) | "Compre já alugado" (imóvel vendido com inquilino). |
+| `monthlyRent` | inteiro (R$/mês) | condicional | Aluguel **atual** do inquilino. Obrigatório se `isRented`, `500 … 200.000`; nulo caso contrário. |
 | `description` | texto | sim | 30–3.000 caracteres. "Descrição do proprietário". |
 | `amenities` | lista de `AmenityCode` | não | Sem repetição; só códigos **aplicáveis ao tipo** (ver §3). |
 | `photos` | lista de URLs ordenada | sim | 1–50 fotos; a primeira é a capa. |
@@ -57,7 +58,9 @@
 | Derivado | Fórmula | Uso |
 |---|---|---|
 | `monthlyCost` | `condoFee + iptu` | Linha "Condo. + IPTU" e filtro "Condomínio + IPTU". |
-| `pricePerM2` | `round(salePrice / area)` | Ordenação "Menor preço por m²" e badge "Ótimo preço". |
+| `pricePerM2` | `round(salePrice / area)` | Badge "Ótimo preço". |
+| `estimatedRent` | `monthlyRent` se `isRented`; senão `round(area × medianRentPerM2 do bairro)` | Base do retorno com aluguel. Recalculado junto com as medianas do bairro. |
+| `rentalYield` | `estimatedRent / salePrice` (fração mensal; exibida como `0,45% a.m.`) | Ordenação "Maior retorno com aluguel". |
 | `title` (card) | ver §6.3 | Card. |
 | `headline` (detalhe) | ver §6.3 | Título do detalhe. |
 | `badges` | ver §5 | Card e detalhe. |
@@ -65,12 +68,16 @@
 
 ### 2.2 Bairro (`Neighborhood`)
 `id`, `slug` (ex.: `pinheiros`), `name` ("Pinheiros"), `centerLat/centerLng`, `bounds`
-(retângulo), `zone` (Centro, Oeste, Sul, Norte, Leste) e `medianPricePerM2` (recalculado
-após o seed e após cada cadastro/edição de imóvel do bairro).
+(retângulo), `zone` (Centro, Oeste, Sul, Norte, Leste), `medianPricePerM2` (recalculado
+após o seed e após cada cadastro/edição de imóvel do bairro) e `medianRentPerM2` (aluguel
+mensal por m² de referência do bairro; parâmetro de mercado definido no seed, já que não
+temos anúncios de aluguel).
 
 ### 2.3 Favorito (`Favorite`)
 Par (`userId`, `propertyId`) único + `createdAt`. Sem login real: `userId` é um UUID anônimo
-gerado no navegador e persistido localmente (suposição). Favoritar é idempotente;
+gerado no navegador e persistido localmente. (Decisão provisória — o original exige login;
+como a identidade chega à API por um único header, trocar por autenticação real depois não
+afeta o domínio.) Favoritar é idempotente;
 desfavoritar algo que não está favoritado não é erro. Só imóveis `ACTIVE` podem ser
 favoritados; se um favorito ficar inativo, ele continua na lista marcado como indisponível.
 
@@ -123,9 +130,16 @@ entre si com **E**. Filtro ausente = "Tanto faz".
 | Comodidades (todas as categorias) | `amenities` | Imóvel tem **todas** as selecionadas (E). (suposição) | Códigos do enum, sem repetição. |
 | Somente favoritos | `onlyFavorites` | Só imóveis favoritados pelo usuário atual. | Exige `userId`. |
 
-Se `neighborhoodSlugs` e `bbox` vierem juntos, ambos se aplicam (interseção). Na UI, porém,
-mover o mapa com "Buscar ao mover o mapa" ligado **substitui** o bairro pela área visível
-(ver architecture.md).
+**Na API**, se `neighborhoodSlugs` e `bbox` vierem juntos, ambos se aplicam (interseção) — a
+API é literal. **Na busca (comportamento do original, validado):**
+- O bairro escolhido é o *contexto de localização*: posiciona o mapa, aparece no campo de
+  busca e no cabeçalho, e é a origem de "Mais próximos". Ele **nunca é removido** por
+  interação com o mapa.
+- Antes de o usuário mexer no mapa, a lista é filtrada pelo bairro.
+- Depois que o usuário move/dá zoom, a lista e a contagem passam a ser filtradas **só pela
+  área visível** (`bbox`), mesmo que isso traga imóveis de fora do bairro.
+- Os clusters do mapa sempre usam a área visível + os demais filtros (nunca o bairro), por
+  isso o zoom out mostra imóveis de outros bairros.
 
 Erros de validação são retornados como erro GraphQL `BAD_USER_INPUT` com
 `extensions.code = "INVALID_FILTER"` e `extensions.field` (ex.: `price`), e mensagem em
@@ -137,13 +151,19 @@ Toda ordenação usa `id` como desempate (estável, necessário para paginação
 
 | Valor | Label | Regra |
 |---|---|---|
+Ordem de exibição no menu igual à do original:
+
+| Valor | Label | Regra |
+|---|---|---|
+| `NEAREST` | Mais próximos | Distância asc. até o **ponto de origem**: centro do bairro do contexto; sem bairro, centro da área visível do mapa; sem nenhum dos dois, Praça da Sé (-23.5505, -46.6333). |
 | `RELEVANCE` (padrão) | Mais relevantes | `relevanceScore` desc. |
 | `NEWEST` | Mais recentes | `publishedAt` desc. |
-| `PRICE_ASC` | Menor preço | `salePrice` asc. |
-| `PRICE_DESC` | Maior preço | `salePrice` desc. |
-| `PRICE_PER_M2_ASC` | Menor preço por m² | `pricePerM2` asc. |
+| `PRICE_ASC` | Menor valor | `salePrice` asc. |
+| `PRICE_DESC` | Maior valor | `salePrice` desc. |
+| `RENTAL_YIELD_DESC` | Maior retorno com aluguel | `rentalYield` desc. |
 
-Lista de ordenações além de "Mais relevantes" é **(suposição)**.
+Distância: aproximação equiretangular
+`(Δlat)² + (Δlng × cos(lat₀))²` — suficiente para ordenar dentro de uma cidade.
 
 **`relevanceScore` (suposição)** — número 0–100 recalculado em toda escrita do imóvel e por
 um job diário (`bun run recompute-scores`):
@@ -206,8 +226,8 @@ O card mostra **no máximo 2** badges, nesta ordem de prioridade: `EXCLUSIVE`, `
     ("Apartamentos", "Casas", "Casas de condomínio", "Studios"); senão "Imóveis"; singular
     se `count = 1`;
   - `complemento` = `com {n} quartos` se `minBedrooms` (ex.: "com 3 quartos"), omitido senão;
-  - `local` = `{Bairro}, São Paulo, SP` com um bairro; `São Paulo, SP` sem bairro, com vários
-    bairros ou com busca por área do mapa.
+  - `local` = `{Bairro}, São Paulo, SP` com um bairro no contexto (inclusive depois de mover o
+    mapa, como no original); `São Paulo, SP` sem bairro ou com vários bairros.
   - Ex.: "7.887 Apartamentos com 3 quartos à venda em Pinheiros, São Paulo, SP".
 
 ## 7. Ciclo de vida do imóvel (para cadastro/edição)

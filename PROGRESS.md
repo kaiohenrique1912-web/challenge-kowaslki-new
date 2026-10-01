@@ -13,4 +13,7 @@
 
 ## Notas
 
+- Suposições da Etapa 0 revisadas com o usuário em 2026-10-01. Em aberto (decisões
+  provisórias, fáceis de trocar): favoritos com usuário anônimo; filtros na query string.
+- Foco em desktop/notebook; mobile será revisado depois.
 - Prompts de cada etapa: `docs/reference/prompts-challenge-quintoandar.md`.

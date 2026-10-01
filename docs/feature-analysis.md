@@ -43,9 +43,8 @@ cards) e à direita o mapa ocupando a altura da viewport.
 - Botão de ordenação à direita, padrão **"Mais relevantes"**.
 
 ### 2.3 Ordenações
-- Confirmado: **Mais relevantes** (padrão).
-- **(suposição)** demais opções: **Mais recentes**, **Menor preço**, **Maior preço**,
-  **Menor preço por m²** (o menu não renderizou no acesso).
+Confirmado (compra): **Mais próximos**, **Mais relevantes** (padrão), **Mais recentes**,
+**Menor valor**, **Maior valor**, **Maior retorno com aluguel**.
 
 ### 2.4 Card do imóvel
 - Carrossel de fotos com bolinhas de paginação; badges no canto superior esquerdo.
@@ -72,8 +71,9 @@ cards) e à direita o mapa ocupando a altura da viewport.
 - Chips dos filtros ativos sobrepostos no topo do mapa, removíveis com "×"
   ("Total R$ 500 – R$ 5.000 ×", "3+ dormitórios ×").
 - Controles de zoom +/−; botão **"Desenhar área de busca"** (polígono livre).
-- **(suposição)** ao mover/zoom o mapa, a lista e a contagem são atualizadas para a área
-  visível (busca por bounding box), com debounce.
+- Ao mover/zoom o mapa, a lista e a contagem passam a refletir a área visível (validado).
+  O bairro buscado **continua** no campo de busca (o filtro não "muda"), mas ao afastar o zoom
+  aparecem imóveis de fora do bairro (validado).
 - **(suposição)** clicar num cluster dá zoom nele; clicar numa bolha "1" mostra um mini-card.
 
 ### 2.7 Painel "Mais filtros" (`mais_filtros1..4.jpeg` + HTML de compra)
@@ -141,6 +141,7 @@ Painel lateral/modal com rolagem, botão fechar (×), rodapé fixo com **"Limpar
   filtro/rota "ver favoritos".
 
 ## 5. Mobile
+- **Prioridade baixa:** o foco é desktop/notebook; o mobile será revisado depois.
 - Não há prints mobile. **(suposição)** baseada no padrão do site:
   - lista em coluna única; botão flutuante alterna **Lista ↔ Mapa**;
   - chips da barra de filtros em rolagem horizontal;
@@ -148,4 +149,6 @@ Painel lateral/modal com rolagem, botão fechar (×), rodapé fixo com **"Limpar
 
 ## 6. Fora do escopo (proposto)
 Aluguel, alerta de imóvel, onboarding por perguntas, login real, agendar visita, proposta,
-chat, rentabilidade, desenhar área de busca (planejado como opcional — ver architecture.md).
+chat, toggle "exibir rentabilidade mensal" (o dado existe por causa da ordenação "Maior
+retorno com aluguel", mas o toggle não), desenhar área de busca (planejado como opcional —
+ver architecture.md).
