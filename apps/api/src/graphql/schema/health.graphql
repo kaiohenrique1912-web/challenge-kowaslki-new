@@ -1,0 +1,12 @@
+type Query {
+  "Verifica se a API está no ar."
+  health: Health!
+}
+
+type Health {
+  "Sempre \"ok\" quando a API responde."
+  status: String!
+  service: String!
+  "ISO-8601 (UTC)"
+  timestamp: String!
+}

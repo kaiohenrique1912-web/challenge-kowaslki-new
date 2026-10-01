@@ -1,0 +1,25 @@
+{
+  "name": "quintoandar-search-clone",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @qa/api --filter @qa/web dev",
+    "dev:api": "bun run --filter @qa/api dev",
+    "dev:web": "bun run --filter @qa/web dev",
+    "seed": "bun run --filter @qa/api seed",
+    "storybook": "bun run --filter @qa/ui storybook",
+    "build-storybook": "bun run --filter @qa/ui build-storybook",
+    "typecheck": "bun run --filter \"*\" typecheck",
+    "lint": "biome check .",
+    "format": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@types/bun": "^1.4.2",
+    "typescript": "^7.0.2"
+  }
+}

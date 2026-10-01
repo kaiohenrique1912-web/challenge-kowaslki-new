@@ -1,0 +1,27 @@
+/*
+ * Tokens do design system (versão inicial — a paleta completa vem na Etapa 4).
+ * Componentes usam só estas variáveis, nunca valores literais.
+ */
+:root {
+  --qa-color-primary: #3b5bc2;
+  --qa-color-primary-hover: #2f4aa3;
+  --qa-color-primary-subtle: #eef1fc;
+  --qa-color-on-primary: #ffffff;
+  --qa-color-neutral-100: #f3f3f3;
+  --qa-color-neutral-200: #e6e6e6;
+  --qa-color-text: #1f1f1f;
+  --qa-color-text-muted: #6b6b6b;
+
+  --qa-font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --qa-font-size-sm: 0.875rem;
+  --qa-font-size-md: 1rem;
+  --qa-font-weight-bold: 700;
+
+  --qa-space-2: 0.5rem;
+  --qa-space-3: 0.75rem;
+  --qa-space-4: 1rem;
+  --qa-space-6: 1.5rem;
+
+  --qa-radius-pill: 999px;
+  --qa-focus-ring: 0 0 0 3px rgb(59 91 194 / 0.35);
+}

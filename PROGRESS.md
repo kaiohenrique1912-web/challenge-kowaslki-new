@@ -3,7 +3,11 @@
 - [x] **Etapa 0: Planejamento e documentação** — `docs/feature-analysis.md`,
   `docs/business-rules.md`, `docs/architecture.md`, `CLAUDE.md`. Suposições a validar estão
   marcadas com "(suposição)" nos docs.
-- [ ] **Etapa 1: Setup do monorepo**
+- [x] **Etapa 1: Setup do monorepo** — Bun workspaces (`@qa/api`, `@qa/web`, `@qa/ui`,
+  `@qa/shared`), tsconfig base, query GraphQL `health` (Elysia + Yoga), web chamando o health
+  via proxy do Vite, Storybook 10 com `Button`, Biome, seed placeholder. Verificado:
+  `bun test` (3 testes), `bun run typecheck`, `bun run lint`, `bun run dev`, `bun run storybook`,
+  build da web.
 - [ ] **Etapa 2: Modelo de dados e seed com 50k+ imóveis**
 - [ ] **Etapa 3: Backend GraphQL de busca**
 - [ ] **Etapa 4: Design system + Storybook**

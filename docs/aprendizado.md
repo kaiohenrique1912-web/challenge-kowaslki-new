@@ -87,3 +87,88 @@ Foram feitos dois commits:
 | Commit / Push | Salvar uma versão no histórico do Git / enviar para o GitHub. |
 | Bun | Ferramenta que roda JavaScript/TypeScript e instala dependências (faz o papel do Node + npm). |
 
+---
+
+# Aprendizado — Etapa 1 (Setup do monorepo)
+
+> Na Etapa 1 foi montado o **esqueleto** do projeto: as quatro partes existem, conversam entre si e rodam, mas ainda não fazem nada de imóveis. É como erguer a estrutura e passar a fiação de uma casa antes de mobiliar.
+
+## 1. O que foi feito, passo a passo
+
+### 1.1 A raiz do monorepo
+- `package.json` da raiz declara os **workspaces** (`apps/*` e `packages/*`). Com isso, um único `bun install` instala as dependências de todas as partes, e uma parte pode importar a outra pelo nome (ex.: `@qa/shared`).
+- `tsconfig.base.json` guarda as regras do TypeScript (modo `strict`, etc.). Cada parte tem um `tsconfig.json` pequeno que **herda** dessa base.
+- `.gitignore` diz ao Git o que **não** salvar: `node_modules` (dependências baixadas), `dist` (builds) e o arquivo do banco SQLite.
+- `.gitattributes` padroniza as quebras de linha dos arquivos (Windows e Linux/Mac usam caracteres diferentes no fim da linha; sem isso, o Git acusaria "mudanças" falsas).
+- `biome.json` configura o **Biome**, que confere o estilo do código e acha erros comuns.
+
+**Por quê?** Configurar uma vez só, no topo, evita que cada parte tenha regras diferentes.
+
+### 1.2 `packages/shared` — o tipo de exemplo
+Exporta o tipo `HealthStatus` (o formato da resposta "a API está viva?") e uma função `isHealthStatus` que confere se um dado tem esse formato. A **api** usa o tipo para responder, e a **web** usa para conferir a resposta.
+
+**Por quê?** É a prova de que o "escreva uma vez, use dos dois lados" funciona. Nas próximas etapas, os tipos de imóvel, filtros e validações vão morar aqui.
+
+### 1.3 `apps/api` — o servidor
+- **Elysia** é o servidor web; o plugin **GraphQL Yoga** adiciona o endereço `/graphql`.
+- O contrato fica em `schema/health.graphql`: existe uma pergunta `health` que devolve `status`, `service` e `timestamp`.
+- O *resolver* (`modules/health/health.resolvers.ts`) é a função que responde essa pergunta.
+- `createApp()` monta o servidor **sem abrir porta**. Assim o teste consegue "fazer uma pergunta" ao servidor sem precisar ligá-lo de verdade.
+- Abrindo http://localhost:4000/graphql no navegador aparece o **GraphiQL**, uma tela para testar perguntas GraphQL na mão.
+- O `seed` ainda só imprime uma mensagem; ele ganha conteúdo na Etapa 2.
+
+### 1.4 `apps/web` — a tela
+- **Vite** é o servidor de desenvolvimento: entrega a tela ao navegador e recarrega na hora quando você salva um arquivo.
+- A tela pergunta `health` à API e mostra "API: ok", com estados de *carregando* e *erro* e um botão "Verificar novamente" (que vem do design system).
+- **Proxy:** a tela chama `/graphql` no próprio endereço dela (porta 5173), e o Vite repassa para a API (porta 4000). Sem isso o navegador bloquearia a chamada por segurança (regra chamada **CORS**, que barra pedidos entre endereços diferentes).
+
+### 1.5 `packages/ui` — o design system
+- `tokens.css` define as primeiras **variáveis de design** (cor azul principal, fonte, espaçamentos, bordas arredondadas). Componentes usam essas variáveis, nunca a cor "solta".
+- `Button` é o componente de exemplo, com variações (primário/secundário, pequeno/médio, desabilitado).
+- O **Storybook** (http://localhost:6006) mostra o `Button` em cada variação, isolado do resto do app.
+
+### 1.6 Verificação
+Tudo foi testado de verdade, não só escrito:
+
+| Verificação | Resultado |
+|---|---|
+| `bun test` | 3 testes passando (o `health` da API e a função de `shared`) |
+| `bun run typecheck` | sem erros de tipo nas 4 partes |
+| `bun run lint` | sem problemas |
+| `bun run dev` | API e tela no ar; a tela recebe "ok" pelo proxy |
+| `bun run storybook` | Storybook no ar com as 4 variações do `Button` |
+| build da web | gera a versão final da tela sem erros |
+
+## 2. Problemas encontrados e como foram resolvidos
+
+- **Bun fora do PATH:** o Bun foi instalado com o VS Code já aberto, então o terminal dele não "via" o Bun. Os comandos foram rodados pelo caminho completo. **Solução definitiva:** fechar e abrir o VS Code.
+- **Duas versões do GraphQL:** o plugin do Elysia já traz sua própria versão do GraphQL Yoga, que só funciona com `graphql` 16. Uma versão mais nova (17) tinha sido instalada por fora, o que deixaria duas cópias no projeto e causaria erros difíceis de entender mais tarde. A versão foi fixada na 16 e a cópia extra removida. Isso ficou registrado em `architecture.md` para ninguém repetir o erro.
+- **TypeScript 7 e arquivos `.css`:** a versão nova do TypeScript reclama de `import "./Button.css"` se não souber o que é CSS. A solução foi usar as definições de tipo do Vite, que é quem processa o CSS.
+- **Sem Node instalado:** tudo (Vite, Storybook, TypeScript) roda com `bunx --bun`, que usa o Bun no lugar do Node. Funcionou, então o Node continua desnecessário.
+
+## 3. Como rodar (resumo)
+
+```
+bun install          # instala tudo
+bun run dev          # API (porta 4000) + tela (porta 5173)
+bun run storybook    # catálogo de componentes (porta 6006)
+bun test             # testes
+```
+
+## 4. Glossário da Etapa 1
+
+| Termo | Significado |
+|---|---|
+| Workspace | Cada parte do monorepo (`api`, `web`, `ui`, `shared`), com seu próprio `package.json`. |
+| Dependência | Biblioteca de terceiros que o projeto usa (ex.: React, Elysia). Fica em `node_modules`. |
+| `bun.lock` | Arquivo que "congela" as versões exatas instaladas, para todo mundo ter o mesmo resultado. |
+| TypeScript | JavaScript com tipos: avisa erros (ex.: campo com nome errado) antes de rodar. |
+| Typecheck | Rodar o TypeScript só para procurar erros de tipo. |
+| Lint | Verificação automática de estilo e de erros comuns no código. |
+| Resolver | Função do servidor que responde a uma pergunta GraphQL. |
+| Proxy | Intermediário que recebe um pedido e o repassa para outro endereço. |
+| CORS | Regra de segurança do navegador que bloqueia pedidos entre endereços diferentes. |
+| Token de design | Variável com uma decisão visual (cor, espaçamento) usada por todos os componentes. |
+| Build | Gerar a versão final, otimizada, do código para publicar. |
+| Porta | "Número de porta" do computador onde cada servidor atende (4000, 5173, 6006). |
+

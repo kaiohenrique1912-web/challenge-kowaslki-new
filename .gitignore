@@ -1,0 +1,28 @@
+# dependências
+node_modules/
+
+# builds
+dist/
+build/
+storybook-static/
+*.tsbuildinfo
+
+# banco SQLite (gerado por migrate/seed)
+apps/api/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+
+# ambiente
+.env
+.env.*
+!.env.example
+
+# logs / sistema operacional / editores
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

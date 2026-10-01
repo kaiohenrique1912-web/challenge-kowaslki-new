@@ -546,3 +546,6 @@ cobrindo seus estados. Detalhes em `docs/design-system.md` (criado na Etapa 4).
 | Schema-first + codegen | O SDL é contrato único e tipado para api e web; agentes leem um só lugar. |
 | zod em `shared` | A mesma validação roda no formulário (web) e no serviço (api). |
 | Usuário anônimo por header | Favoritos sem implementar autenticação, fora do escopo. |
+| `graphql@16` fixado na api | O plugin `@elysiajs/graphql-yoga` traz o Yoga 3, que só aceita `graphql` 15/16. Ter duas versões de `graphql` instaladas quebra o schema ("from another module"). Não instale `graphql-yoga` nem `graphql@17` diretamente. |
+| Código-fonte TS exportado direto por `ui`/`shared` | Sem etapa de build entre pacotes; Bun e Vite leem `.ts` direto. |
+| Biome no lugar de ESLint + Prettier | Uma ferramenta só, rápida, sem plugins. |

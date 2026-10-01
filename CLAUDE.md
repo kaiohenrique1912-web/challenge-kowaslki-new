@@ -23,7 +23,7 @@ Outros documentos:
 | Camada | Tecnologia |
 |---|---|
 | Runtime / pacotes | Bun (workspaces) |
-| Backend | Elysia + GraphQL Yoga (`@elysiajs/graphql-yoga`), schema-first + GraphQL Code Generator |
+| Backend | Elysia + GraphQL Yoga (`@elysiajs/graphql-yoga`), schema-first (SDL em `apps/api/src/graphql/schema/*.graphql`) + GraphQL Code Generator (Etapa 3) |
 | Banco | SQLite via `bun:sqlite` (arquivo em `apps/api/data/app.db`, sem Docker) |
 | Frontend | React + Vite + TypeScript, React Router, TanStack Query |
 | Mapa | Leaflet + tiles OpenStreetMap; clusters agregados no servidor |
@@ -43,22 +43,39 @@ docs/            documentação e prints de referência
 
 Direção de dependências: `web → ui → shared` e `api → shared`. Nunca o contrário.
 
+Os pacotes do workspace se chamam `@qa/api`, `@qa/web`, `@qa/ui` e `@qa/shared`. `ui` e
+`shared` exportam o código-fonte TypeScript direto (sem build): importe `@qa/shared` e
+`@qa/ui` (CSS dos tokens: `@qa/ui/tokens.css`). Para adicionar uma dependência, rode
+`bun add <pacote>` **dentro da pasta do workspace** que a usa.
+
+Arquivos-chave hoje:
+- `apps/api/src/app.ts` — monta Elysia + Yoga (`createApp()`, usado também nos testes).
+- `apps/api/src/graphql/schema/*.graphql` — SDL; `graphql/resolvers.ts` registra os módulos.
+- `apps/api/src/modules/<módulo>/` — resolvers/serviço/repositório de cada módulo.
+- `apps/web/src/lib/graphql-client.ts` — cliente GraphQL.
+- `packages/ui/src/tokens/tokens.css` — tokens; `packages/ui/src/components/` — componentes + stories.
+
 ## Comandos
 
-> Planejados — serão confirmados/ajustados na Etapa 1 (setup do monorepo).
+Pré-requisito único: **Bun ≥ 1.4** (Node não é necessário). Rode tudo na raiz do repositório.
 
 | Ação | Comando |
 |---|---|
 | Instalar dependências | `bun install` |
-| Rodar api + web | `bun run dev` (api em http://localhost:4000/graphql, web em http://localhost:5173) |
+| Rodar api + web | `bun run dev` → api em http://localhost:4000/graphql (GraphiQL no navegador), web em http://localhost:5173 |
 | Só api / só web | `bun run dev:api` / `bun run dev:web` |
-| Criar banco + migrações | `bun run db:migrate` |
-| Popular banco (60k imóveis, seed fixa) | `bun run seed` |
-| Recalcular relevância/medianas | `bun run recompute-scores` |
-| Gerar tipos GraphQL | `bun run codegen` |
-| Testes | `bun test` |
-| Typecheck / lint | `bun run typecheck` / `bun run lint` |
-| Storybook | `bun run storybook` (http://localhost:6006) |
+| Popular banco | `bun run seed` (placeholder até a Etapa 2) |
+| Testes (todos os pacotes) | `bun test` |
+| Typecheck (todos os pacotes) | `bun run typecheck` |
+| Lint / corrigir formatação | `bun run lint` / `bun run format` (Biome) |
+| Storybook | `bun run storybook` → http://localhost:6006 |
+| Build do Storybook | `bun run build-storybook` |
+
+Planejados (ainda não existem): `bun run db:migrate` (Etapa 2), `bun run recompute-scores`
+(Etapa 2/3), `bun run codegen` (Etapa 3).
+
+Portas: api `4000` (`PORT`), web `5173` (o Vite repassa `/graphql` para `API_URL`, padrão
+`http://localhost:4000`), Storybook `6006`.
 
 ## Convenções (resumo — detalhes em docs/architecture.md §11)
 
