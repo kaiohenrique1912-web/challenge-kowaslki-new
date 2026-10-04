@@ -39,7 +39,9 @@ flowchart LR
 
 Regra: dependências só fluem nessa direção. `ui` nunca chama a API; `api` nunca importa `ui`/`web`.
 
-## 2. Estrutura de pastas (planejada)
+## 2. Estrutura de pastas
+
+Itens marcados ✅ já existem; o resto é planejado.
 
 ```
 apps/
@@ -62,11 +64,19 @@ apps/
         neighborhoods/ …
         favorites/ …
         locations/ …            # autocomplete
-      db/
-        client.ts               # abre o SQLite (WAL, foreign_keys=ON)
-        migrate.ts
+        photos/                 # ✅ GET /static/photos/{room}-{variant}.svg (placeholders)
+      db/                       # ✅ Etapa 2
+        client.ts               # openDatabase() — WAL, foreign_keys=ON; DB_PATH sobrescreve
+        migrate.ts              # runMigrations() + CLI `bun run db:migrate`
         migrations/0001_init.sql …
-        seed/                   # gerador determinístico (seed fixa)
+        maintenance/recompute.ts  # medianas, aluguel estimado, relevância (CLI recompute-scores)
+        seed/
+          neighborhoods.ts      # 102 bairros reais (centro, R$/m², raio, perfil, metrô)
+          generator.ts          # generateDataset() — função pura, determinística
+          random.ts             # PRNG com seed fixa (mulberry32)
+          texts.ts              # ruas e descrições
+          insert.ts             # bulkInsert + withDeferredIndexes
+          index.ts              # seedDatabase() + CLI `bun run seed`
     data/app.db                 # gerado; fora do git
   web/
     src/
@@ -79,9 +89,12 @@ apps/
       lib/                      # cliente GraphQL, userId anônimo, utilidades
 packages/
   shared/src/
-    domain/                     # enums, tipos, amenities, labels
-    validation/                 # schemas zod (filtros, cadastro)
-    format/                     # formatBRL, plurais, títulos, datas relativas
+    domain/                     # ✅ property.ts (enums/labels), amenities.ts (catálogo +
+                                #    aplicabilidade), limits.ts (faixas, limites de SP),
+                                #    derived.ts (aluguel estimado, retorno, badges, relevância)
+    validation/                 # ✅ property.ts (propertyInputSchema); filtros na Etapa 3
+    format/                     # ✅ text.ts (normalizeText, slugify, formatCep);
+                                #    formatBRL, plurais, títulos, datas relativas depois
     search/                     # serialização filtros ⇄ URL, defaults
   ui/src/
     tokens/                     # tokens.css + tokens.ts
@@ -388,6 +401,40 @@ antes de adicionar índices. Meta: **p95 < 50 ms** por query no servidor local.
 Nenhum outro arquivo escreve cláusulas de filtro. Feature nova que filtra imóveis estende
 este builder e seus testes.
 
+### 5.3 Seed (`apps/api/src/db/seed`)
+
+Pipeline de `bun run seed` (padrão: 60.000 imóveis, seed `42`; opções `--count` e `--seed`
+rodando `bun src/db/seed/index.ts` dentro de `apps/api`):
+
+1. Apaga o arquivo do banco e roda as migrações.
+2. `generateDataset({ count, seed, now })` — **função pura e determinística** (mesma seed ⇒
+   mesmos dados; só as datas acompanham o `now`). Para cada imóvel sorteia um bairro (peso por
+   bairro), tipo (pelo perfil do bairro), quartos/suítes/banheiros/vagas/área coerentes entre
+   si, localização gaussiana ao redor do centro do bairro, preço = R$/m² do bairro × fator do
+   tipo × fator de tamanho × ruído log-normal (±18%), condomínio por m² crescente com o padrão
+   do bairro, IPTU ≈ 0,025–0,045% do preço ao mês, comodidades por probabilidade (respeitando
+   a aplicabilidade por tipo), fotos e descrição.
+3. **Cada imóvel é validado com `propertyInputSchema` de `packages/shared`** — o mesmo schema
+   que o cadastro usará. Um imóvel inválido aborta o seed.
+4. `withDeferredIndexes`: remove os índices `idx_*`, grava tudo numa transação com
+   `INSERT` multi-linha (`bulkInsert`), roda `recomputeDerivedFields` e recria os índices.
+   Criar o índice uma vez no fim é ~3× mais rápido que mantê-lo linha a linha.
+5. `ANALYZE` para o planner do SQLite.
+
+Resultado de referência (notebook Windows): 60.000 imóveis, 102 bairros, ~1,1 mi de fotos e
+~850 mil comodidades em **~9–10 s**; banco com ~130 MB.
+
+`recomputeDerivedFields(db, now)` (`db/maintenance/recompute.ts`) recalcula
+`median_price_per_m2` dos bairros, `estimated_rent` e `relevance_score` de todos os imóveis,
+usando as funções de `shared` (`computeEstimatedRent`, `computeBadges`,
+`computeRelevanceScore`). Uma feature que cria/edita imóveis deve chamá-lo (ou uma versão
+restrita ao bairro afetado) após gravar.
+
+**Fotos:** a URL `/static/photos/{room}-{variant}.svg` (`room` ∈ living, bedroom, kitchen,
+bathroom, facade, balcony; `variant` 1–8) é desenhada pela api em
+`modules/photos/placeholder-photo.ts` — sem arquivos e sem serviços externos. O Vite repassa
+`/static` para a api. Um cadastro real gravaria URLs de uploads no mesmo campo.
+
 ## 6. Paginação
 
 **Keyset (cursor)**, não offset: estável quando dados mudam e com custo constante em
@@ -505,8 +552,8 @@ Valores inválidos na URL são descartados silenciosamente (a página nunca queb
   ação "Limpar filtros"), erro (mensagem + "Tentar novamente").
 - **Favoritos:** `userId` UUID gerado e salvo em `localStorage` (`lib/user-id.ts`), enviado em
   `x-user-id`. Toggle com update otimista no cache.
-- **Fotos:** URLs servidas pela API em `/static/photos/…` (placeholders gerados localmente
-  no seed — sem serviços externos).
+- **Fotos:** URLs relativas servidas pela API em `/static/photos/…` (placeholders SVG
+  desenhados pela api — ver §5.3); o Vite faz proxy de `/static`.
 
 ## 10. Design system
 

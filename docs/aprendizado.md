@@ -172,3 +172,107 @@ bun test             # testes
 | Build | Gerar a versão final, otimizada, do código para publicar. |
 | Porta | "Número de porta" do computador onde cada servidor atende (4000, 5173, 6006). |
 
+---
+
+# Aprendizado — Etapa 2 (Modelo de dados e seed)
+
+> Na Etapa 2 o projeto ganhou um **banco de dados de verdade** com 60.000 imóveis inventados, mas realistas, espalhados por 102 bairros reais de São Paulo. Ainda não dá para buscar pela tela; isso vem nas Etapas 3 e 5.
+
+## 1. O que foi feito, passo a passo
+
+### 1.1 As regras do imóvel em código (`packages/shared`)
+O que estava escrito em `business-rules.md` virou código que o computador consegue checar:
+- **`domain/property.ts`**: os tipos de imóvel (Apartamento, Casa, Casa de condomínio, Studio) e seus nomes em português.
+- **`domain/amenities.ts`**: as 57 comodidades (Piscina, Academia, Varanda…) e a regra de quais valem para cada tipo. Por exemplo, casa de rua não tem "Piscina do condomínio".
+- **`domain/limits.ts`**: as faixas válidas (preço de R$ 50 mil a R$ 50 milhões, área de 10 a 2.000 m²…) e o "retângulo" de São Paulo no mapa.
+- **`domain/derived.ts`**: os cálculos automáticos: aluguel estimado, retorno com aluguel, os selos ("Exclusivo", "Baixou o preço", "Ótimo preço"…) e a nota de "Mais relevantes".
+- **`validation/property.ts`**: o **validador** (feito com uma biblioteca chamada **zod**). Você entrega os dados de um imóvel e ele responde "ok" ou uma lista de erros em português, como *"Suítes não podem passar do número de quartos."*
+
+**Por quê?** Esse validador é o mesmo que o futuro **cadastro de imóveis** vai usar. Se a IA criar o formulário, ela não precisa reinventar nenhuma regra, é só usar o que já está aqui.
+
+### 1.2 As tabelas do banco (`apps/api/src/db/migrations/0001_init.sql`)
+Um banco de dados é como uma planilha com várias abas, chamadas **tabelas**:
+
+| Tabela | O que guarda |
+|---|---|
+| `neighborhoods` | os bairros (nome, centro no mapa, preço médio do m²) |
+| `properties` | os imóveis (tipo, endereço, preço, quartos…) |
+| `property_photos` | as fotos de cada imóvel, em ordem |
+| `property_amenities` | as comodidades de cada imóvel |
+| `favorites` | os favoritos (vazia por enquanto) |
+
+Algumas colunas são **calculadas pelo próprio banco**, como "condomínio + IPTU" e "preço por m²". Assim ninguém precisa lembrar de calcular, e elas nunca ficam erradas.
+
+Esse arquivo é uma **migração**: um passo numerado de evolução do banco. Se no futuro for preciso mudar o banco (por exemplo, para o cadastro), cria-se uma migração nova (`0002_...sql`), em vez de editar a antiga. Quem já tem o banco só aplica o passo que falta.
+
+Também foram criados os **índices** planejados na Etapa 0, para as buscas e ordenações ficarem rápidas. Uma busca de teste por área do mapa respondeu em cerca de 24 milissegundos.
+
+### 1.3 O seed: como os 60 mil imóveis são inventados (`apps/api/src/db/seed/`)
+- **Bairros reais:** 102 bairros de SP, cada um com o centro aproximado no mapa, o preço de referência do m² (Itaim Bibi ~R$ 17 mil, Cidade Tiradentes ~R$ 3 mil), o tamanho, se tem mais prédios ou mais casas e se tem metrô.
+- **Imóveis coerentes:** para cada imóvel, o gerador sorteia um bairro e então escolhe valores que combinam entre si:
+  - tipo de acordo com o bairro (mais apartamentos em Pinheiros, mais casas no Grajaú);
+  - quartos, suítes, banheiros e vagas que fazem sentido juntos;
+  - área compatível com os quartos;
+  - preço = m² do bairro × área, com uma variação para não ficar tudo igual;
+  - condomínio e IPTU proporcionais ao imóvel e ao bairro;
+  - posição no mapa espalhada em volta do centro do bairro.
+- **Seed fixa (reprodutível):** o sorteio usa um gerador de números "pseudoaleatórios". Com a mesma semente (o número `42`), ele gera **exatamente os mesmos imóveis** toda vez, como embaralhar um baralho sempre do mesmo jeito. Assim um bug encontrado hoje pode ser reproduzido amanhã.
+- **Tudo validado:** cada imóvel inventado passa pelo validador do item 1.1. Se um único estiver errado, o seed para com erro. Isso garante que os dados de teste obedecem às mesmas regras que um cadastro real.
+- **Fotos sem internet:** em vez de baixar fotos de algum site, a API **desenha** uma ilustração simples (sala, quarto, cozinha, fachada…) no formato SVG, que é uma imagem feita de instruções de desenho. Exemplo: http://localhost:4000/static/photos/living-3.svg (com a API rodando).
+
+### 1.4 Recálculo (`apps/api/src/db/maintenance/recompute.ts`)
+Algumas informações dependem de **outros imóveis** ou do **tempo**:
+- o preço médio do m² do bairro, que decide o selo "Ótimo preço";
+- o aluguel estimado;
+- a nota de "Mais relevantes", que cai conforme o anúncio envelhece.
+
+O comando `bun run recompute-scores` recalcula tudo isso. O seed já roda esse recálculo no final.
+
+## 2. Problemas encontrados e como foram resolvidos
+
+- **Seed lento (20 s):** medindo cada fase, o tempo estava quase todo na gravação de ~2 milhões de linhas (imóveis + fotos + comodidades). Duas mudanças:
+  1. gravar várias linhas por comando, em vez de uma por vez;
+  2. criar os índices **só no final**. Manter o índice atualizado a cada linha é como reorganizar o índice de um livro a cada palavra escrita; é muito mais rápido montar o índice uma vez, com o livro pronto.
+
+  Resultado: **~9–10 s**.
+- **Condomínio caro demais na periferia:** a primeira versão gerava condomínio + IPTU de ~R$ 1.070 em Itaquera, acima do real. A taxa por m² dos bairros mais baratos foi reduzida, e agora vai de ~R$ 750 (Itaquera) a ~R$ 1.490 (Pinheiros).
+- **Teste com tempo esgotado:** o teste que popula 60 mil imóveis passava do limite padrão de 5 segundos e foi ajustado.
+
+## 3. Resultado
+
+| Item | Quantidade |
+|---|---|
+| Imóveis | 60.000 (58.248 ativos) |
+| Bairros | 102 |
+| Fotos | ~1,1 milhão |
+| Comodidades | ~850 mil |
+| Tempo do seed | ~9–10 s |
+| Testes | 39 passando (incluindo "o seed gera ≥ 50.000 imóveis válidos") |
+
+Exemplo de coerência: um apartamento de 3 quartos sai por volta de **R$ 1,45 milhão em Pinheiros** e **R$ 400 mil em Itaquera**.
+
+## 4. Como rodar
+
+```
+bun run seed               # recria o banco com os 60 mil imóveis (~10 s)
+bun run recompute-scores   # recalcula médias, aluguel estimado e relevância
+bun test                   # inclui o teste do seed
+```
+
+O banco fica em `apps/api/data/app.db` (cerca de 130 MB) e **não vai para o GitHub**: cada pessoa gera o seu com `bun run seed`.
+
+## 5. Glossário da Etapa 2
+
+| Termo | Significado |
+|---|---|
+| Tabela | "Aba" do banco de dados, com linhas (registros) e colunas (campos). |
+| Migração | Passo numerado que cria ou altera tabelas do banco. |
+| Seed | Script que enche o banco com dados iniciais. |
+| Seed fixa / semente | Número que faz o sorteio "aleatório" sempre dar o mesmo resultado. |
+| Validação | Conferir se um dado obedece às regras antes de aceitá-lo. |
+| zod | Biblioteca usada para escrever as regras de validação. |
+| Transação | Conjunto de gravações tratadas como uma só: ou entram todas, ou nenhuma. |
+| Coluna calculada | Coluna que o banco preenche sozinho a partir de outras (ex.: condomínio + IPTU). |
+| Mediana | O valor do meio de uma lista ordenada; menos afetada por valores extremos do que a média. |
+| SVG | Formato de imagem feito de instruções de desenho (linhas, formas, cores). |
+

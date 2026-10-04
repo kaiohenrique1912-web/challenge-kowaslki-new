@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
+    "db:migrate": "bun src/db/migrate.ts",
     "seed": "bun src/db/seed/index.ts",
+    "recompute-scores": "bun src/db/maintenance/recompute.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

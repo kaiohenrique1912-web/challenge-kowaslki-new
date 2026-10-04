@@ -9,6 +9,6 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     // O navegador chama /graphql na mesma origem; o Vite repassa para a API (sem CORS).
-    proxy: { "/graphql": apiUrl },
+    proxy: { "/graphql": apiUrl, "/static": apiUrl },
   },
 });

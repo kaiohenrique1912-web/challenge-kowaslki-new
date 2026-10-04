@@ -3,7 +3,10 @@
 > Fonte da verdade do domínio. Toda feature nova (busca, cadastro, edição, favoritos…) deve
 > obedecer a este documento. Enums, faixas, labels e validações descritos aqui são
 > implementados **uma única vez** em `packages/shared` e importados por `apps/api` e
-> `apps/web` — nunca duplique uma regra.
+> `apps/web` — nunca duplique uma regra. Onde cada parte vive hoje:
+> §2.1 campos/faixas → `domain/property.ts`, `domain/limits.ts`, `validation/property.ts`
+> (`propertyInputSchema`); derivados, badges e relevância → `domain/derived.ts`;
+> §3 comodidades → `domain/amenities.ts`.
 >
 > Origem do levantamento: [feature-analysis.md](feature-analysis.md). Regras marcadas com
 > **(suposição)** ainda aguardam validação; se mudarem, atualize aqui e em `packages/shared`.
@@ -43,7 +46,7 @@
 | `floor` | inteiro | condicional | `APARTMENT`/`STUDIO`: `0 … 60` (0 = térreo), opcional. `HOUSE`/`CONDO_HOUSE`: sempre nulo. |
 | `isFurnished` | booleano | sim (padrão `false`) | Mobiliado. |
 | `acceptsPets` | booleano | sim (padrão `false`) | Atributo exibido; não é filtro em compra (suposição). |
-| `nearSubway` | booleano | sim (padrão `false`) | "Metrô próx." — estação a até ~1 km (no seed é calculado; no cadastro, informado). |
+| `nearSubway` | booleano | sim (padrão `false`) | "Metrô próx." — estação a até ~1 km (no seed é sorteado, mais provável em bairros com estação; no cadastro, informado). |
 | `isExclusive` | booleano | sim (padrão `false`) | "Exclusivo QuintoAndar". |
 | `isRented` | booleano | sim (padrão `false`) | "Compre já alugado" (imóvel vendido com inquilino). |
 | `monthlyRent` | inteiro (R$/mês) | condicional | Aluguel **atual** do inquilino. Obrigatório se `isRented`, `500 … 200.000`; nulo caso contrário. |
