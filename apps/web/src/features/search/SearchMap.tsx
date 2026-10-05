@@ -23,6 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { useNavigate } from "react-router";
 import { useDebouncedValue } from "../../lib/hooks.ts";
+import { useToggleFavorite } from "../favorites/use-favorites.ts";
 import {
   clusterIdFor,
   DEFAULT_VIEW,
@@ -33,7 +34,7 @@ import {
   toLatLngBounds,
 } from "./map-utils.ts";
 import { type NeighborhoodInfo, useMapClusters, usePropertyPreview } from "./queries.ts";
-import { type HighlightedProperty, toCardData } from "./ResultsList.tsx";
+import { FROM_SEARCH_STATE, type HighlightedProperty, toCardData } from "./ResultsList.tsx";
 import type { SetSearchState } from "./use-search-state.ts";
 
 type Viewport = { bbox: BoundingBox; zoom: number };
@@ -283,6 +284,7 @@ export function SearchMap({
   }, [highlightedCell]);
 
   const preview = usePropertyPreview(previewId);
+  const toggleFavorite = useToggleFavorite();
   const chips = activeFilterChips(state.filters);
 
   return (
@@ -354,8 +356,9 @@ export function SearchMap({
               href={`/imovel/${preview.data.id}`}
               onNavigate={(e) => {
                 e.preventDefault();
-                navigate(`/imovel/${previewId}`);
+                navigate(`/imovel/${previewId}`, { state: FROM_SEARCH_STATE });
               }}
+              onFavoriteToggle={(favorite) => toggleFavorite(preview.data?.id ?? "", favorite)}
             />
           ) : (
             <div className="search-map__preview-loading">

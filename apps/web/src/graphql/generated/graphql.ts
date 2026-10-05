@@ -188,6 +188,32 @@ export type LocationSuggestionsQueryVariables = Exact<{
 
 export type LocationSuggestionsQuery = { locationSuggestions: Array<{ kind: LocationSuggestionKind, label: string, neighborhoodSlug: string | null, propertyId: string | null, center: { lat: number, lng: number }, bounds: { north: number, south: number, east: number, west: number } | null }> };
 
+export type PropertyDetailQueryVariables = Exact<{
+  id: string | number;
+}>;
+
+
+export type PropertyDetailQuery = { property: { id: string, type: PropertyType, title: string, headline: string, street: string, salePrice: number, previousPrice: number | null, condoFee: number, iptu: number, monthlyCost: number, area: number, bedrooms: number, suites: number, bathrooms: number, parkingSpaces: number, floor: number | null, isFurnished: boolean, acceptsPets: boolean, nearSubway: boolean, isRented: boolean, monthlyRent: number | null, estimatedRent: number, rentalYield: number, description: string, badges: Array<PropertyBadge>, isFavorite: boolean, publishedAt: string | null, location: { lat: number, lng: number }, neighborhood: { slug: string, name: string }, amenities: Array<{ code: AmenityCode, label: string }>, unavailableAmenities: Array<{ code: AmenityCode, label: string }>, photos: Array<{ url: string }> } | null };
+
+export type AddFavoriteMutationVariables = Exact<{
+  propertyId: string | number;
+}>;
+
+
+export type AddFavoriteMutation = { addFavorite: { id: string, isFavorite: boolean } };
+
+export type RemoveFavoriteMutationVariables = Exact<{
+  propertyId: string | number;
+}>;
+
+
+export type RemoveFavoriteMutation = { removeFavorite: { id: string, isFavorite: boolean } };
+
+export type FavoritesCountQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type FavoritesCountQuery = { favoritesCount: number };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -367,3 +393,76 @@ export const LocationSuggestionsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<LocationSuggestionsQuery, LocationSuggestionsQueryVariables>;
+export const PropertyDetailDocument = new TypedDocumentString(`
+    query PropertyDetail($id: ID!) {
+  property(id: $id) {
+    id
+    type
+    title
+    headline
+    street
+    salePrice
+    previousPrice
+    condoFee
+    iptu
+    monthlyCost
+    area
+    bedrooms
+    suites
+    bathrooms
+    parkingSpaces
+    floor
+    isFurnished
+    acceptsPets
+    nearSubway
+    isRented
+    monthlyRent
+    estimatedRent
+    rentalYield
+    description
+    badges
+    isFavorite
+    publishedAt
+    location {
+      lat
+      lng
+    }
+    neighborhood {
+      slug
+      name
+    }
+    amenities {
+      code
+      label
+    }
+    unavailableAmenities {
+      code
+      label
+    }
+    photos {
+      url
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<PropertyDetailQuery, PropertyDetailQueryVariables>;
+export const AddFavoriteDocument = new TypedDocumentString(`
+    mutation AddFavorite($propertyId: ID!) {
+  addFavorite(propertyId: $propertyId) {
+    id
+    isFavorite
+  }
+}
+    `) as unknown as TypedDocumentString<AddFavoriteMutation, AddFavoriteMutationVariables>;
+export const RemoveFavoriteDocument = new TypedDocumentString(`
+    mutation RemoveFavorite($propertyId: ID!) {
+  removeFavorite(propertyId: $propertyId) {
+    id
+    isFavorite
+  }
+}
+    `) as unknown as TypedDocumentString<RemoveFavoriteMutation, RemoveFavoriteMutationVariables>;
+export const FavoritesCountDocument = new TypedDocumentString(`
+    query FavoritesCount {
+  favoritesCount
+}
+    `) as unknown as TypedDocumentString<FavoritesCountQuery, FavoritesCountQueryVariables>;

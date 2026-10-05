@@ -138,6 +138,8 @@ export function searchResultsHeading(p: {
   minBedrooms?: number;
   /** Nome do bairro do contexto — só quando há exatamente um. */
   neighborhoodName?: string;
+  /** "Ver favoritos" ativo: o subtítulo começa com "nos seus favoritos ·". */
+  onlyFavorites?: boolean;
 }): { title: string; subtitle: string } {
   const onlyType = p.types?.length === 1 ? p.types[0] : undefined;
   const subject =
@@ -155,6 +157,6 @@ export function searchResultsHeading(p: {
     p.minBedrooms !== undefined ? `com ${pluralize(p.minBedrooms, "quarto", "quartos")} ` : "";
   return {
     title: `${p.count.toLocaleString("pt-BR")} ${subject}`,
-    subtitle: `${complement}à venda em ${place}`,
+    subtitle: `${p.onlyFavorites ? "nos seus favoritos · " : ""}${complement}à venda em ${place}`,
   };
 }

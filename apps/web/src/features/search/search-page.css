@@ -115,32 +115,6 @@
   color: var(--qa-color-primary);
 }
 
-/* Marcadores do Leaflet: o ícone tem tamanho 0 e o conteúdo é centralizado no ponto. */
-.search-map-marker {
-  overflow: visible;
-}
-
-.search-map-marker > * {
-  position: absolute;
-  transform: translate(-50%, -50%);
-}
-
-.search-map-marker--pin > * {
-  transform: translate(-50%, -100%);
-}
-
-.leaflet-marker-icon.search-map-marker:focus-visible {
-  outline: none;
-}
-
-.leaflet-marker-icon.search-map-marker:focus-visible > * {
-  box-shadow: var(--qa-shadow-map), var(--qa-focus-ring);
-}
-
-.leaflet-container {
-  font-family: var(--qa-font-family);
-}
-
 @media (max-width: 767px) {
   .search-map__toggle {
     display: none;

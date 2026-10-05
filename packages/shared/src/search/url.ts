@@ -124,12 +124,14 @@ export function parseSearchState(params: URLSearchParams, pathSlug?: string | nu
   const mapArea = parseBbox(params.get("area-mapa"));
   const mapZoom = mapArea ? parseInteger(params.get("zoom"), 0, 22) : undefined;
   const sort = SORT_BY_SLUG.get(params.get("ordem") ?? "") ?? DEFAULT_SORT;
+  const onlyFavorites = params.get("favoritos") === "sim";
 
   return {
     neighborhoodSlugs,
     ...(mapArea && { mapArea }),
     ...(mapZoom !== undefined && { mapZoom }),
     filters,
+    ...(onlyFavorites && { onlyFavorites }),
     sort,
   };
 }
@@ -178,6 +180,7 @@ export function serializeSearchState(state: SearchState): { pathname: string; se
     const ordered = AMENITY_CODES.filter((c) => f.amenities?.includes(c));
     params.set("itens", ordered.map(amenitySlug).join(","));
   }
+  if (state.onlyFavorites) params.set("favoritos", "sim");
   if (state.sort !== DEFAULT_SORT) params.set("ordem", SORT_SLUGS[state.sort]);
 
   const search = params.toString();

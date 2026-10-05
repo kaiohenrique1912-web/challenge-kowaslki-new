@@ -30,3 +30,9 @@ export function parseOrThrow<T extends z.ZodType>(schema: T, value: unknown): z.
   const first = issues[0] ?? { field: "", message: "Argumentos inválidos." };
   throw badUserInput(first.message, first.field || undefined, issues);
 }
+
+export function notFound(message: string, field?: string): GraphQLError {
+  return new GraphQLError(message, {
+    extensions: { code: "NOT_FOUND", ...(field ? { field } : {}) },
+  });
+}

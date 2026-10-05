@@ -13,6 +13,7 @@ dados, paginação, mapa, convenções). Se a sua mudança alterar uma regra ou 
 documento no mesmo commit.
 
 Outros documentos:
+- [README.md](README.md) — visão geral, como rodar do zero e decisões técnicas.
 - [docs/feature-analysis.md](docs/feature-analysis.md) — levantamento do site original.
 - [docs/reference/](docs/reference/) — prints do original (fonte para fidelidade visual).
 - [PROGRESS.md](PROGRESS.md) — etapas do projeto e o que já está pronto.
@@ -73,7 +74,10 @@ Arquivos-chave hoje:
 - `apps/web/src/features/search/` — página de busca: `use-search-state.ts` (estado = URL),
   `queries.ts` (hooks TanStack Query), `SearchFilters`, `ResultsList`, `SearchMap` (Leaflet),
   `LocationSearch`. Rotas em `apps/web/src/router.tsx`.
-- `apps/web/e2e/smoke.ts` — teste de ponta a ponta no navegador real.
+- `apps/web/src/features/property/` — página de detalhe; `features/favorites/use-favorites.ts`
+  — `useToggleFavorite()` (otimista) e `useFavoritesCount()`. Favoritos na API:
+  `apps/api/src/modules/favorites/`.
+- `apps/web/e2e/smoke.ts` — teste de ponta a ponta no navegador real (20 fluxos).
 - `packages/ui/src/tokens/tokens.ts` — tokens (fonte única; `tokens.css` é gerado);
   `packages/ui/src/components/` — componentes base; `packages/ui/src/domain/` — componentes de
   imóveis (`PropertyCard`, `FilterBar`, `MapCluster`…); `packages/ui/src/index.ts` — exports;

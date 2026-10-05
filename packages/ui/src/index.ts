@@ -3,6 +3,11 @@
 
 // Base
 export { Badge, type BadgeProps } from "./components/Badge/Badge.tsx";
+export {
+  Breadcrumb,
+  type BreadcrumbItem,
+  type BreadcrumbProps,
+} from "./components/Breadcrumb/Breadcrumb.tsx";
 export { Button, type ButtonProps } from "./components/Button/Button.tsx";
 export { Checkbox, type CheckboxProps } from "./components/Checkbox/Checkbox.tsx";
 export { Chip, type ChipProps } from "./components/Chip/Chip.tsx";
@@ -21,6 +26,10 @@ export {
   type CounterSelectorProps,
 } from "./components/CounterSelector/CounterSelector.tsx";
 export { Drawer, type DrawerProps } from "./components/Drawer/Drawer.tsx";
+export {
+  ExpandableText,
+  type ExpandableTextProps,
+} from "./components/ExpandableText/ExpandableText.tsx";
 export { IconButton, type IconButtonProps } from "./components/IconButton/IconButton.tsx";
 export { Input, type InputProps } from "./components/Input/Input.tsx";
 export { type DialogProps, Modal } from "./components/Modal/Modal.tsx";
@@ -53,6 +62,8 @@ export { Toggle, type ToggleProps } from "./components/Toggle/Toggle.tsx";
 export { Tooltip, type TooltipProps } from "./components/Tooltip/Tooltip.tsx";
 
 // Domínio (imóveis)
+export { AddressCard, type AddressCardProps } from "./domain/AddressCard/AddressCard.tsx";
+export { AmenityList, type AmenityListProps } from "./domain/AmenityList/AmenityList.tsx";
 export {
   AppHeader,
   type AppHeaderLink,
@@ -87,6 +98,11 @@ export {
   mapClusterLabel,
 } from "./domain/MapMarkers/MapMarkers.tsx";
 export { PhotoCarousel, type PhotoCarouselProps } from "./domain/PhotoCarousel/PhotoCarousel.tsx";
+export {
+  PriceSummary,
+  type PriceSummaryProps,
+  type PriceSummaryRow,
+} from "./domain/PriceSummary/PriceSummary.tsx";
 export { PriceTag, type PriceTagProps } from "./domain/PriceTag/PriceTag.tsx";
 export {
   PropertyBadges,
@@ -98,6 +114,14 @@ export {
   type PropertyCardProps,
   PropertyCardSkeleton,
 } from "./domain/PropertyCard/PropertyCard.tsx";
+export {
+  PropertyFeatures,
+  type PropertyFeaturesProps,
+} from "./domain/PropertyFeatures/PropertyFeatures.tsx";
+export {
+  PropertyGallery,
+  type PropertyGalleryProps,
+} from "./domain/PropertyGallery/PropertyGallery.tsx";
 export { ResultsHeader, type ResultsHeaderProps } from "./domain/ResultsHeader/ResultsHeader.tsx";
 export {
   SearchLayout,

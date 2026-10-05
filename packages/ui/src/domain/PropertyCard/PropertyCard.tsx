@@ -4,7 +4,7 @@ import {
   propertyAttributesLine,
   publicAddress,
 } from "@qa/shared";
-import type { MouseEvent } from "react";
+import { type MouseEvent, memo } from "react";
 import { Skeleton } from "../../components/Skeleton/Skeleton.tsx";
 import { cx } from "../../utils/cx.ts";
 import { FavoriteButton } from "../FavoriteButton/FavoriteButton.tsx";
@@ -46,8 +46,11 @@ export type PropertyCardProps = {
   className?: string;
 };
 
-/** Card da lista de resultados (business-rules §6). */
-export function PropertyCard({
+/**
+ * Card da lista de resultados (business-rules §6). Memorizado: com callbacks estáveis, o hover de
+ * um card não redesenha os outros.
+ */
+export const PropertyCard = memo(function PropertyCard({
   property: p,
   href,
   onNavigate,
@@ -97,7 +100,7 @@ export function PropertyCard({
       </div>
     </article>
   );
-}
+});
 
 /** Placeholder do card enquanto a lista carrega (mesmas dimensões). */
 export function PropertyCardSkeleton() {

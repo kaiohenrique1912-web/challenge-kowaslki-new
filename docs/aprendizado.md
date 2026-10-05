@@ -602,3 +602,82 @@ bun run e2e        # (com o dev rodando) os 14 fluxos no Chrome; prints em apps/
 | Headless | Navegador rodando sem janela, controlado por um programa. |
 | z-index | "Altura" de um elemento na pilha da tela: quem fica por cima de quem. |
 
+
+---
+
+# Aprendizado — Etapa 6 (Detalhe, favoritos e acabamento)
+
+> Na Etapa 6 o site ficou "completo" para quem busca um imóvel: dá para **abrir o imóvel**, ver tudo sobre ele, **favoritar** e voltar para a busca sem perder nada. Também foi feita uma revisão de aparência, de velocidade e o `README.md`.
+
+## 1. O que foi feito, passo a passo
+
+### 1.1 A página do imóvel (`/imovel/1037438`)
+Montada comparando com os prints `abrir_oferta*.png` do original:
+- **Topo:** título ("Casa à venda com 387m², 5 quartos e 2 vagas"), selos, preço em destaque e as fotos ao lado. Clicar numa foto ou em "33 Fotos" abre a **galeria** em tela cheia, com setas e miniaturas.
+- **Corpo:** trilha (Início › São Paulo › Bairro › Rua › Imóvel), endereço, características com ícones ("Sem vaga", "Aceita pet"…), "Publicado há 11 dias", descrição com "Ver mais", itens disponíveis e indisponíveis e um **mapa** com a localização.
+- **Lateral fixa:** o card de preços (venda, condomínio, IPTU, condo + IPTU) e o **retorno estimado com aluguel**, a mesma conta que alimenta a ordenação "Maior retorno com aluguel".
+- **Fora do escopo:** "Agendar visita" e "Fazer proposta" abrem um aviso explicando que não fazem parte da demonstração, em vez de não fazer nada.
+
+Os textos ("Sem vaga", "Térreo", "Publicado há 2 meses", "Condomínio: Não há") vêm do `packages/shared`, com testes, seguindo as regras de negócio.
+
+### 1.2 Favoritos
+- **No servidor:** duas "ações" novas na API, chamadas **mutations** (`addFavorite` e `removeFavorite`), e uma pergunta `favoritesCount`. Sem login: cada navegador ganha um código anônimo, guardado nele mesmo, que vai junto em todo pedido.
+- **Na tela:** o coração aparece no card, na prévia do mapa e no detalhe. O cabeçalho mostra "Favoritos (2)", e o chip **"Favoritos"** na barra filtra só os seus.
+- **Atualização otimista:** quando você clica no coração, a tela **já mostra** o coração preenchido, antes de a API responder. Se a API falhar, ela desfaz sozinha. Assim o clique parece instantâneo.
+
+### 1.3 "Voltar para a busca" sem perder nada
+Ao abrir um imóvel pela lista, a tela anota "vim da busca". O botão "Voltar para a busca" então usa o **voltar do navegador**: os filtros, os imóveis já carregados com "Ver mais" e a **posição da rolagem** voltam exatamente como estavam. Se você chegou ao imóvel por um link direto, ele volta para a última busca que você fez, ou para o bairro do imóvel.
+
+### 1.4 Revisão de aparência
+Comparando os prints da tela com os do original, dois ajustes no detalhe: o título ocupava 4 linhas (a coluna estava estreita) e os selos cinza sumiam no fundo cinza.
+
+### 1.5 Revisão de velocidade
+- **Cards "memorizados":** antes, passar o mouse em **um** card fazia o React redesenhar **todos** os cards da lista. Agora só os cards que mudaram são redesenhados.
+- **Páginas sob demanda:** o código foi dividido por página. Quem abre o link de um imóvel não baixa o código da busca, e vice-versa.
+- A API já estava rápida (Etapa 3): abrir um imóvel leva cerca de 1 ms no servidor.
+
+### 1.6 Testes e README
+- **API:** 5 testes novos de favoritos (favoritar duas vezes não duplica, cada usuário tem os seus, imóvel inativo não pode ser favoritado…).
+- **Navegador:** o teste ganhou 6 fluxos novos, **20 no total**, todos passando:
+  1. favoritar pelo card e ver o contador subir;
+  2. "ver favoritos";
+  3. abrir o detalhe e a galeria;
+  4. voltar mantendo os filtros;
+  5. desfavoritar no detalhe;
+  6. imóvel inexistente.
+- **`README.md`:** o "cartão de visita" do projeto. Diz o que dá para fazer, **como rodar do zero** em 3 comandos e as decisões técnicas.
+
+## 2. Problemas encontrados e como foram resolvidos
+
+- **Tipos das duas mutations:** favoritar e desfavoritar devolvem tipos diferentes, e o TypeScript não aceitava escolher entre elas numa linha só. As duas chamadas foram separadas.
+- **Dependência escondida:** a página do imóvel importava uma constante da página de busca, o que faria baixar a busca inteira só para abrir um imóvel. A constante foi para um arquivo pequeno próprio.
+- **Estilo dos marcadores:** o estilo do pino do mapa ficava no CSS da busca; abrindo direto um imóvel, o pino ficaria sem estilo. Foi para um arquivo usado pelas duas páginas.
+
+## 3. Resultado
+
+| Item | Situação |
+|---|---|
+| Testes automáticos | 170 passando |
+| Teste no navegador | 20/20 fluxos |
+| Componentes novos no design system | 7 (galeria, card de preços, características, itens, endereço, trilha, texto "Ver mais") |
+| Documentação nova | `README.md` |
+
+## 4. Como testar você mesmo
+
+```
+bun run dev
+# abra http://localhost:5173, clique num imóvel, favorite, volte para a busca,
+# clique em "Favoritos" no topo
+bun run e2e     # (com o dev rodando) os 20 fluxos no Chrome
+```
+
+## 5. Glossário da Etapa 6
+
+| Termo | Significado |
+|---|---|
+| Mutation | Pedido GraphQL que **altera** dados (ex.: favoritar), em vez de só ler. |
+| Atualização otimista | Mostrar o resultado antes da confirmação do servidor e desfazer se der erro. |
+| Memorizar (memo) | Guardar o desenho de um componente e só refazê-lo se os dados dele mudarem. |
+| Code splitting | Dividir o código do site em pedaços baixados só quando necessários. |
+| Lightbox | Visualizador de fotos em tela cheia, por cima da página. |
+| README | Arquivo de apresentação de um projeto: o que é e como usar. |

@@ -98,3 +98,13 @@ describe("toApiFilters", () => {
     expect(toApiFilters(base, "map")).toEqual({ minBedrooms: 3 });
   });
 });
+
+describe("favorites in the URL", () => {
+  test("favoritos=sim round-trips and reaches list and map filters", () => {
+    const state = { ...EMPTY_SEARCH_STATE, onlyFavorites: true };
+    expect(searchStateToUrl(state)).toBe("/comprar/imovel?favoritos=sim");
+    expect(parse("/comprar/imovel?favoritos=sim")).toEqual(state);
+    expect(toApiFilters(state, "list")).toEqual({ onlyFavorites: true });
+    expect(toApiFilters(state, "map")).toEqual({ onlyFavorites: true });
+  });
+});

@@ -1,4 +1,5 @@
 import { GraphQLScalarType } from "graphql";
+import { favoritesResolvers } from "../modules/favorites/favorites.resolvers.ts";
 import { healthResolvers } from "../modules/health/health.resolvers.ts";
 import { locationsResolvers } from "../modules/locations/locations.resolvers.ts";
 import { neighborhoodsResolvers } from "../modules/neighborhoods/neighborhoods.resolvers.ts";
@@ -13,6 +14,7 @@ const modules: Resolvers[] = [
   propertiesResolvers,
   neighborhoodsResolvers,
   locationsResolvers,
+  favoritesResolvers,
 ];
 
 /** Junta os resolvers dos módulos, mesclando tipos repetidos (ex.: `Query`). */

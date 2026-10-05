@@ -87,7 +87,9 @@ gerado no navegador e persistido localmente. (Decisão provisória — o origina
 como a identidade chega à API por um único header, trocar por autenticação real depois não
 afeta o domínio.) Favoritar é idempotente;
 desfavoritar algo que não está favoritado não é erro. Só imóveis `ACTIVE` podem ser
-favoritados; se um favorito ficar inativo, ele continua na lista marcado como indisponível.
+favoritados; se um favorito ficar inativo, ele sai da lista de favoritos e do contador (o
+vínculo fica guardado e volta a aparecer se o imóvel for reativado). "Ver favoritos" combina
+com os demais filtros e com a área do mapa.
 
 ## 3. Comodidades (`AmenityCode`)
 
@@ -227,7 +229,8 @@ O card mostra **no máximo 2** badges, nesta ordem de prioridade: `EXCLUSIVE`, `
 - Atributos no card: `120 m² · 3 quartos · 2 vagas` (vagas omitidas se 0; `STUDIO` com 0
   quartos mostra `Studio`).
 - Endereço público: `{street}, {bairro} · São Paulo`. Número e complemento nunca aparecem.
-- Atributos no detalhe: área, quartos, banheiros, vagas (`–` se 0), andar (`Térreo` se 0,
+- Atributos no detalhe (`propertyFeatures`): área, quartos (`Studio` se 0), suítes (só se > 0),
+  banheiros, vagas (`Sem vaga` se 0), andar (`Térreo` se 0,
   `{n}º andar`; oculto para casas), `Aceita pet`/`Não aceita pet`, `Mobiliado`/`Sem mobília`,
   `Metrô próx.` (só se `true`).
 

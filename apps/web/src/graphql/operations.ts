@@ -131,3 +131,80 @@ export const locationSuggestionsDocument = graphql(`
     }
   }
 `);
+
+export const propertyDetailDocument = graphql(`
+  query PropertyDetail($id: ID!) {
+    property(id: $id) {
+      id
+      type
+      title
+      headline
+      street
+      salePrice
+      previousPrice
+      condoFee
+      iptu
+      monthlyCost
+      area
+      bedrooms
+      suites
+      bathrooms
+      parkingSpaces
+      floor
+      isFurnished
+      acceptsPets
+      nearSubway
+      isRented
+      monthlyRent
+      estimatedRent
+      rentalYield
+      description
+      badges
+      isFavorite
+      publishedAt
+      location {
+        lat
+        lng
+      }
+      neighborhood {
+        slug
+        name
+      }
+      amenities {
+        code
+        label
+      }
+      unavailableAmenities {
+        code
+        label
+      }
+      photos {
+        url
+      }
+    }
+  }
+`);
+
+export const addFavoriteDocument = graphql(`
+  mutation AddFavorite($propertyId: ID!) {
+    addFavorite(propertyId: $propertyId) {
+      id
+      isFavorite
+    }
+  }
+`);
+
+export const removeFavoriteDocument = graphql(`
+  mutation RemoveFavorite($propertyId: ID!) {
+    removeFavorite(propertyId: $propertyId) {
+      id
+      isFavorite
+    }
+  }
+`);
+
+export const favoritesCountDocument = graphql(`
+  query FavoritesCount {
+    favoritesCount
+  }
+`);

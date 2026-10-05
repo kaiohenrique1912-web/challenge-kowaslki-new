@@ -172,6 +172,24 @@ export type MapClusterResult = {
   zoom: Scalars['Int']['output'];
 };
 
+export type Mutation = {
+  __typename?: 'Mutation';
+  /** Favorita um imóvel ativo para o usuário do header x-user-id. Idempotente. */
+  addFavorite: Property;
+  /** Remove dos favoritos. Idempotente (remover o que não está favoritado não é erro). */
+  removeFavorite: Property;
+};
+
+
+export type MutationAddFavoriteArgs = {
+  propertyId: Scalars['ID']['input'];
+};
+
+
+export type MutationRemoveFavoriteArgs = {
+  propertyId: Scalars['ID']['input'];
+};
+
 export type Neighborhood = {
   __typename?: 'Neighborhood';
   bounds: Bounds;
@@ -318,6 +336,8 @@ export type Query = {
   __typename?: 'Query';
   /** Catálogo de comodidades na ordem do painel de filtros. */
   amenities: Array<Amenity>;
+  /** Quantos imóveis ativos o usuário do header x-user-id favoritou (0 sem usuário). */
+  favoritesCount: Scalars['Int']['output'];
   /** Verifica se a API está no ar. */
   health: Health;
   /** Autocomplete do campo "Rua, bairro ou código" (mínimo 2 caracteres). */
@@ -465,6 +485,7 @@ export type ResolversTypes = {
   LocationSuggestionKind: LocationSuggestionKind;
   MapCluster: ResolverTypeWrapper<MapCluster>;
   MapClusterResult: ResolverTypeWrapper<MapClusterResult>;
+  Mutation: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Neighborhood: ResolverTypeWrapper<NeighborhoodRecord>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
   Photo: ResolverTypeWrapper<Photo>;
@@ -498,6 +519,7 @@ export type ResolversParentTypes = {
   LocationSuggestion: LocationSuggestion;
   MapCluster: MapCluster;
   MapClusterResult: MapClusterResult;
+  Mutation: Record<PropertyKey, never>;
   Neighborhood: NeighborhoodRecord;
   PageInfo: PageInfo;
   Photo: Photo;
@@ -557,6 +579,11 @@ export type MapClusterResultResolvers<ContextType = GraphQLContext, ParentType e
   clusters?: Resolver<Array<ResolversTypes['MapCluster']>, ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   zoom?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+};
+
+export type MutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
+  addFavorite?: Resolver<ResolversTypes['Property'], ParentType, ContextType, RequireFields<MutationAddFavoriteArgs, 'propertyId'>>;
+  removeFavorite?: Resolver<ResolversTypes['Property'], ParentType, ContextType, RequireFields<MutationRemoveFavoriteArgs, 'propertyId'>>;
 };
 
 export type NeighborhoodResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Neighborhood'] = ResolversParentTypes['Neighborhood']> = {
@@ -627,6 +654,7 @@ export type PropertyConnectionResolvers<ContextType = GraphQLContext, ParentType
 
 export type QueryResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
   amenities?: Resolver<Array<ResolversTypes['Amenity']>, ParentType, ContextType>;
+  favoritesCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   health?: Resolver<ResolversTypes['Health'], ParentType, ContextType>;
   locationSuggestions?: Resolver<Array<ResolversTypes['LocationSuggestion']>, ParentType, ContextType, RequireFields<QueryLocationSuggestionsArgs, 'limit' | 'query'>>;
   neighborhoods?: Resolver<Array<ResolversTypes['Neighborhood']>, ParentType, ContextType>;
@@ -644,6 +672,7 @@ export type Resolvers<ContextType = GraphQLContext> = {
   LocationSuggestion?: LocationSuggestionResolvers<ContextType>;
   MapCluster?: MapClusterResolvers<ContextType>;
   MapClusterResult?: MapClusterResultResolvers<ContextType>;
+  Mutation?: MutationResolvers<ContextType>;
   Neighborhood?: NeighborhoodResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
   Photo?: PhotoResolvers<ContextType>;

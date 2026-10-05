@@ -141,3 +141,11 @@ export function findFavoritePropertyIds(
     .all(userId, ...ids)
     .map((r) => r.property_id);
 }
+
+/** Imóvel em qualquer status (uso interno: ex.: remover favorito de imóvel já inativo). */
+export function findPropertyById(db: Database, id: number): PropertyRecord | null {
+  const row = db
+    .query<PropertyRow, [number]>(`SELECT ${PROPERTY_COLUMNS} FROM properties p WHERE p.id = ?`)
+    .get(id);
+  return row ? toPropertyRecord(row) : null;
+}

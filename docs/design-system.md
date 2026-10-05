@@ -75,6 +75,8 @@ desktop/notebook (≥ 1280 px, testar também 1366×768); mobile (< 768 px) tem 
 | `Combobox` | Campo com sugestões (WAI-ARIA combobox): ↓/↑, Enter, Esc. Sugestões vêm de fora (`options`), `onSelect`, `loading`, `minChars`. Ex.: "Rua, bairro ou código". | Lista fixa curta (use `Select`) |
 | `ChoiceChips` | Pílulas de escolha única com texto: "Tanto faz · Sim · Não", "Hoje · Últimos 7 dias…". Valor pode ser `undefined` ("Tanto faz"). | Mínimos numéricos (use `CounterSelector`) |
 | `StatusMessage` | Estado vazio ou de erro, centralizado, com ação ("Limpar filtros", "Tentar novamente"). `tone="error"` anuncia na hora (`role="alert"`). | Erro de um campo (use `error` do campo) |
+| `Breadcrumb` | Trilha "Início › São Paulo › Bairro › Rua › Imóvel N"; o último item é a página atual. `onNavigate` para o React Router. | Navegação principal (use `AppHeader`) |
+| `ExpandableText` | Texto longo recolhido em N linhas com "Ver mais / Ver menos" (`aria-expanded`). Ex.: descrição do proprietário. | Conteúdo com estrutura (use seções) |
 | `Pagination` | Páginas numeradas em listas de tamanho fixo. **A busca não usa** — usa "Ver mais" (`Button variant="secondary"`), por causa do cursor. | Busca de imóveis |
 | `Icon` | Ícones de linha (24 px, traço 1.75). Lista em `ICON_NAMES` / story `Base/IconButton › Icon Gallery`. Decorativo por padrão; passe `title` se for informativo. | |
 
@@ -98,6 +100,11 @@ Recebem dados no formato da API (campos de `searchProperties`/`property`) e usam
 | `ResultsHeader` | "7.887 Apartamentos" + "com 3 quartos à venda em…" (`searchResultsHeading` de `@qa/shared`), `loading` (skeleton), `actions` (ex.: `SortMenu`). | |
 | `SortMenu` | Botão "Mais relevantes ▾" com as 6 ordenações (`menuitemradio`: ↓/↑ movem o foco, Enter escolhe e fecha). | `value`, `onChange`, `options?`. |
 | `AppHeader` | Cabeçalho do site: marca, links (`active`), `actions`. `onNavigate` para o React Router. | |
+| `PropertyGallery` | Galeria do detalhe: duas fotos lado a lado (uma no mobile) com setas; "N Fotos"/clique abre o visualizador (modal com ← →, contador e miniaturas); "Mapa" (`onShowMap`). `actions` = botões sobre a foto. | `photos`, `alt`, `actions?`, `onShowMap?`. |
+| `PriceSummary` | Card de preços da lateral do detalhe: linhas com dica (ⓘ), total, nota, ações e rodapé. | `rows`/`total` de `priceSummary()` (@qa/shared), `note?`, `actions?`, `footer?`. |
+| `PropertyFeatures` | Grade de características com ícones ("90 m²", "Sem vaga", "Aceita pet"…). | `features` de `propertyFeatures()` (@qa/shared). |
+| `AmenityList` | "Itens disponíveis" (✓) × "Itens indisponíveis" (riscados, até `unavailableLimit`). | `available`/`unavailable` = `Property.amenities`/`unavailableAmenities`. |
+| `AddressCard` | Endereço público (rua + "Bairro, São Paulo") com seta; clique leva ao mapa. | `street`, `place`, `onClick`. |
 | `MapCluster` | Bolha branca com a contagem (igual ao original, inclusive "1"); azul quando `highlighted`. | `count`, `highlighted`, `onClick`, `interactive` (padrão `true` = `<button>`). No Leaflet use `interactive={false}` dentro de `L.divIcon({ html: renderToStaticMarkup(...) })` — o marcador do Leaflet é que é focável; dê a ele `aria-label` de `mapClusterLabel(count)`. `formatClusterCount` → "1,2 mil". |
 | `MapPin` | Pino vermelho do local buscado (centro do bairro). | `label`. |
 
@@ -146,4 +153,4 @@ Dados de exemplo para stories/testes: `packages/ui/src/fixtures/properties.ts`.
 | Mapa | `MapCluster`, `MapPin`, `Chip onRemove` (filtros sobre o mapa), `Toggle` "Buscar ao mover o mapa", `PropertyCard` (prévia ao clicar num "1") |
 | Painel "Mais filtros" (`mais_filtros*.jpeg`) | `Drawer` + `FilterPanel` (`RangeField`, `Checkbox` em grade, `CounterSelector`, `ChoiceChips`, `Toggle`) + rodapé com `Button link` "Limpar" e `Button` "Ver N imóveis" |
 | Lista vazia / erro | `StatusMessage` |
-| Detalhe (`abrir_oferta*.png`) | `PhotoCarousel`/galeria, `PriceTag size="lg"`, `Tag` (atributos e itens), `Badge` ("Imóvel 1601406"), `FavoriteButton showLabel`, `Tooltip`, `Button` "Agendar visita" |
+| Detalhe (`abrir_oferta*.png`) | `PropertyGallery` (+ `IconButton` compartilhar, `FavoriteButton variant="surface"`), `PropertyBadges`, `Breadcrumb`, `AddressCard`, `PropertyFeatures`, `Badge` ("Imóvel 1601406"), `ExpandableText`, `AmenityList`, `PriceSummary` (+ `FavoriteButton showLabel`), `Modal` (ações fora do escopo) |

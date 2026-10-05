@@ -1,12 +1,15 @@
 import { SearchLayout, type SearchView } from "@qa/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router";
 import { usePersistentState } from "../../lib/hooks.ts";
+import { rememberLastSearch } from "../../lib/navigation.ts";
 import { SiteHeader } from "../layout/SiteHeader.tsx";
 import { useNeighborhoods } from "./queries.ts";
 import { type HighlightedProperty, ResultsList } from "./ResultsList.tsx";
 import { SearchFilters } from "./SearchFilters.tsx";
 import { SearchMap } from "./SearchMap.tsx";
 import { useSearchState } from "./use-search-state.ts";
+import "../../styles/map-markers.css";
 import "./search-page.css";
 
 /**
@@ -19,6 +22,8 @@ export function SearchPage() {
   const [mobileView, setMobileView] = useState<SearchView>("list");
   const [highlighted, setHighlighted] = useState<HighlightedProperty | null>(null);
   const [searchOnMove, setSearchOnMove] = usePersistentState("qa:search-on-move", true);
+  const location = useLocation();
+  useEffect(() => rememberLastSearch(`${location.pathname}${location.search}`), [location]);
 
   return (
     <SearchLayout

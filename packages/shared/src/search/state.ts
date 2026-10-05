@@ -42,6 +42,8 @@ export type SearchState = {
   mapArea?: BoundingBox;
   mapZoom?: number;
   filters: PropertyFilters;
+  /** "Ver favoritos": só imóveis favoritados pelo usuário (x-user-id). */
+  onlyFavorites?: boolean;
   sort: SortOrder;
 };
 
@@ -95,6 +97,7 @@ export function toApiFilters(state: SearchState, mode: "list" | "map"): SearchFi
     ...(f.exclusive !== undefined && { exclusive: f.exclusive }),
     ...(f.rented === true && { rented: true }),
     ...(f.amenities && { amenities: f.amenities }),
+    ...(state.onlyFavorites && { onlyFavorites: true }),
   };
   if (mode === "map") return filters;
   if (state.mapArea) return { ...filters, bbox: state.mapArea };

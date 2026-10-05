@@ -4,6 +4,7 @@ export * from "./domain/limits.ts";
 export * from "./domain/map-grid.ts";
 export * from "./domain/property.ts";
 export * from "./domain/search.ts";
+export * from "./format/property-detail.ts";
 export * from "./format/property-text.ts";
 export * from "./format/text.ts";
 export * from "./health.ts";

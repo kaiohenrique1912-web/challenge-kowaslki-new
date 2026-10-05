@@ -22,6 +22,10 @@ type Documents = {
     "\n  query PropertyPreview($id: ID!) {\n    property(id: $id) {\n      ...PropertyCardFields\n    }\n  }\n": typeof types.PropertyPreviewDocument,
     "\n  query Neighborhoods {\n    neighborhoods {\n      slug\n      name\n      center {\n        lat\n        lng\n      }\n      bounds {\n        north\n        south\n        east\n        west\n      }\n    }\n  }\n": typeof types.NeighborhoodsDocument,
     "\n  query LocationSuggestions($query: String!) {\n    locationSuggestions(query: $query, limit: 8) {\n      kind\n      label\n      neighborhoodSlug\n      propertyId\n      center {\n        lat\n        lng\n      }\n      bounds {\n        north\n        south\n        east\n        west\n      }\n    }\n  }\n": typeof types.LocationSuggestionsDocument,
+    "\n  query PropertyDetail($id: ID!) {\n    property(id: $id) {\n      id\n      type\n      title\n      headline\n      street\n      salePrice\n      previousPrice\n      condoFee\n      iptu\n      monthlyCost\n      area\n      bedrooms\n      suites\n      bathrooms\n      parkingSpaces\n      floor\n      isFurnished\n      acceptsPets\n      nearSubway\n      isRented\n      monthlyRent\n      estimatedRent\n      rentalYield\n      description\n      badges\n      isFavorite\n      publishedAt\n      location {\n        lat\n        lng\n      }\n      neighborhood {\n        slug\n        name\n      }\n      amenities {\n        code\n        label\n      }\n      unavailableAmenities {\n        code\n        label\n      }\n      photos {\n        url\n      }\n    }\n  }\n": typeof types.PropertyDetailDocument,
+    "\n  mutation AddFavorite($propertyId: ID!) {\n    addFavorite(propertyId: $propertyId) {\n      id\n      isFavorite\n    }\n  }\n": typeof types.AddFavoriteDocument,
+    "\n  mutation RemoveFavorite($propertyId: ID!) {\n    removeFavorite(propertyId: $propertyId) {\n      id\n      isFavorite\n    }\n  }\n": typeof types.RemoveFavoriteDocument,
+    "\n  query FavoritesCount {\n    favoritesCount\n  }\n": typeof types.FavoritesCountDocument,
 };
 const documents: Documents = {
     "\n  fragment PropertyCardFields on Property {\n    id\n    type\n    title\n    salePrice\n    monthlyCost\n    area\n    bedrooms\n    parkingSpaces\n    street\n    badges\n    isFavorite\n    location {\n      lat\n      lng\n    }\n    neighborhood {\n      slug\n      name\n    }\n    photos(limit: 8) {\n      url\n    }\n  }\n": types.PropertyCardFieldsFragmentDoc,
@@ -31,6 +35,10 @@ const documents: Documents = {
     "\n  query PropertyPreview($id: ID!) {\n    property(id: $id) {\n      ...PropertyCardFields\n    }\n  }\n": types.PropertyPreviewDocument,
     "\n  query Neighborhoods {\n    neighborhoods {\n      slug\n      name\n      center {\n        lat\n        lng\n      }\n      bounds {\n        north\n        south\n        east\n        west\n      }\n    }\n  }\n": types.NeighborhoodsDocument,
     "\n  query LocationSuggestions($query: String!) {\n    locationSuggestions(query: $query, limit: 8) {\n      kind\n      label\n      neighborhoodSlug\n      propertyId\n      center {\n        lat\n        lng\n      }\n      bounds {\n        north\n        south\n        east\n        west\n      }\n    }\n  }\n": types.LocationSuggestionsDocument,
+    "\n  query PropertyDetail($id: ID!) {\n    property(id: $id) {\n      id\n      type\n      title\n      headline\n      street\n      salePrice\n      previousPrice\n      condoFee\n      iptu\n      monthlyCost\n      area\n      bedrooms\n      suites\n      bathrooms\n      parkingSpaces\n      floor\n      isFurnished\n      acceptsPets\n      nearSubway\n      isRented\n      monthlyRent\n      estimatedRent\n      rentalYield\n      description\n      badges\n      isFavorite\n      publishedAt\n      location {\n        lat\n        lng\n      }\n      neighborhood {\n        slug\n        name\n      }\n      amenities {\n        code\n        label\n      }\n      unavailableAmenities {\n        code\n        label\n      }\n      photos {\n        url\n      }\n    }\n  }\n": types.PropertyDetailDocument,
+    "\n  mutation AddFavorite($propertyId: ID!) {\n    addFavorite(propertyId: $propertyId) {\n      id\n      isFavorite\n    }\n  }\n": types.AddFavoriteDocument,
+    "\n  mutation RemoveFavorite($propertyId: ID!) {\n    removeFavorite(propertyId: $propertyId) {\n      id\n      isFavorite\n    }\n  }\n": types.RemoveFavoriteDocument,
+    "\n  query FavoritesCount {\n    favoritesCount\n  }\n": types.FavoritesCountDocument,
 };
 
 /**
@@ -61,6 +69,22 @@ export function graphql(source: "\n  query Neighborhoods {\n    neighborhoods {\
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  query LocationSuggestions($query: String!) {\n    locationSuggestions(query: $query, limit: 8) {\n      kind\n      label\n      neighborhoodSlug\n      propertyId\n      center {\n        lat\n        lng\n      }\n      bounds {\n        north\n        south\n        east\n        west\n      }\n    }\n  }\n"): typeof import('./graphql').LocationSuggestionsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query PropertyDetail($id: ID!) {\n    property(id: $id) {\n      id\n      type\n      title\n      headline\n      street\n      salePrice\n      previousPrice\n      condoFee\n      iptu\n      monthlyCost\n      area\n      bedrooms\n      suites\n      bathrooms\n      parkingSpaces\n      floor\n      isFurnished\n      acceptsPets\n      nearSubway\n      isRented\n      monthlyRent\n      estimatedRent\n      rentalYield\n      description\n      badges\n      isFavorite\n      publishedAt\n      location {\n        lat\n        lng\n      }\n      neighborhood {\n        slug\n        name\n      }\n      amenities {\n        code\n        label\n      }\n      unavailableAmenities {\n        code\n        label\n      }\n      photos {\n        url\n      }\n    }\n  }\n"): typeof import('./graphql').PropertyDetailDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation AddFavorite($propertyId: ID!) {\n    addFavorite(propertyId: $propertyId) {\n      id\n      isFavorite\n    }\n  }\n"): typeof import('./graphql').AddFavoriteDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation RemoveFavorite($propertyId: ID!) {\n    removeFavorite(propertyId: $propertyId) {\n      id\n      isFavorite\n    }\n  }\n"): typeof import('./graphql').RemoveFavoriteDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query FavoritesCount {\n    favoritesCount\n  }\n"): typeof import('./graphql').FavoritesCountDocument;
 
 
 export function graphql(source: string) {

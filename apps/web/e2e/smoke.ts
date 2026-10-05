@@ -236,6 +236,71 @@ await step("url invalida nao quebra a pagina", async () => {
   await waitForText(page, "à venda em São Paulo, SP");
 });
 
+const FAVORITES_LINK = '.qa-app-header__nav a[href="/comprar/imovel?favoritos=sim"]';
+const favoritesLinkText = (p: Page) => p.$eval(FAVORITES_LINK, (el) => el.textContent ?? "");
+
+await step("favoritar no card atualiza o cabecalho", async () => {
+  await page.goto(`${BASE}/comprar/imovel/pinheiros?quartos=2`, { waitUntil: "networkidle0" });
+  await page.waitForSelector("article.qa-property-card button.qa-favorite");
+  await page.click("article.qa-property-card button.qa-favorite");
+  await page.waitForSelector('article.qa-property-card button.qa-favorite[aria-pressed="true"]');
+  await page.waitForFunction(
+    (sel) => document.querySelector(sel)?.textContent?.includes("Favoritos (1)"),
+    { timeout: 10_000 },
+    FAVORITES_LINK,
+  );
+});
+
+await step("ver favoritos lista so favoritos", async () => {
+  await clickButton(page, "Favoritos", ".qa-filter-bar");
+  await waitForUrl(page, "favoritos=sim");
+  await waitForText(page, "nos seus favoritos");
+  await page.waitForFunction(
+    () => document.querySelectorAll("article.qa-property-card").length === 1,
+    {
+      timeout: 10_000,
+    },
+  );
+});
+
+await step("detalhe do imovel com galeria", async () => {
+  await page.click("article.qa-property-card a.qa-property-card__link");
+  await waitForUrl(page, "/imovel/");
+  await waitForText(page, "Descrição do proprietário");
+  for (const text of ["Itens disponíveis", "Condo. + IPTU", "Localização", "Publicado"]) {
+    await waitForText(page, text);
+  }
+  await page.waitForSelector(".property-map .leaflet-tile-pane");
+  await clickButton(page, "", ".qa-gallery__bottom"); // "N Fotos"
+  await page.waitForSelector(".qa-gallery__viewer img");
+  await settle(page);
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => !document.querySelector(".qa-gallery__viewer"));
+});
+
+await step("voltar para a busca mantem os filtros", async () => {
+  await clickButton(page, "Voltar para a busca");
+  await waitForUrl(page, "favoritos=sim");
+  if (!page.url().includes("quartos=2")) throw new Error(`filtros perdidos: ${page.url()}`);
+});
+
+await step("desfavoritar no detalhe", async () => {
+  await page.click("article.qa-property-card a.qa-property-card__link");
+  await waitForText(page, "Descrição do proprietário");
+  await clickButton(page, "Favoritado", ".qa-price-summary");
+  await page.waitForFunction(
+    (sel) => document.querySelector(sel)?.textContent?.trim() === "Favoritos",
+    { timeout: 10_000 },
+    FAVORITES_LINK,
+  );
+  if ((await favoritesLinkText(page)).includes("(")) throw new Error("contador não zerou");
+});
+
+await step("imovel inexistente", async () => {
+  await page.goto(`${BASE}/imovel/123`, { waitUntil: "networkidle0" });
+  await waitForText(page, "Imóvel não encontrado");
+});
+
 await step("mobile alterna lista e mapa", async () => {
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
   await page.goto(`${BASE}/comprar/imovel/pinheiros`, { waitUntil: "networkidle0" });

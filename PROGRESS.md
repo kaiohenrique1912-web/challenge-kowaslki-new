@@ -34,7 +34,14 @@
   mapa"; estado inteiro na URL (voltar funciona); mobile Lista/Mapa. Cliente GraphQL tipado por
   codegen. 9 componentes novos no `ui` (com stories). 153 testes + `bun run e2e` (14 fluxos no
   Chrome real, todos passando). Coração/favoritos e detalhe completo ficam para a Etapa 6.
-- [ ] **Etapa 6: Página de detalhe, favoritos e acabamento**
+- [x] **Etapa 6: Página de detalhe, favoritos e acabamento** — detalhe `/imovel/:id` (galeria
+  com visualizador, preço, card de preços com retorno estimado, características, itens
+  disponíveis/indisponíveis, descrição "Ver mais", mapa da localização, compartilhar, estados
+  carregando/não encontrado/erro); "Voltar para a busca" mantém filtros e rolagem. Favoritos:
+  mutations `addFavorite`/`removeFavorite` + `favoritesCount`, coração otimista em todos os
+  lugares, "Ver favoritos" (`?favoritos=sim`, chip e link no cabeçalho). Revisão visual com os
+  prints (título e selos do detalhe). Desempenho: cards memorizados, páginas sob demanda.
+  7 componentes novos no `ui`. 170 testes + e2e com 20 fluxos passando. `README.md`.
 - [ ] **Etapa 7: Preparação para agentes e validação one-shot**
 
 ## Notas

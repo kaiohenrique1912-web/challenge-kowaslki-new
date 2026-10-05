@@ -1,0 +1,11 @@
+type Mutation {
+  "Favorita um imóvel ativo para o usuário do header x-user-id. Idempotente."
+  addFavorite(propertyId: ID!): Property!
+  "Remove dos favoritos. Idempotente (remover o que não está favoritado não é erro)."
+  removeFavorite(propertyId: ID!): Property!
+}
+
+extend type Query {
+  "Quantos imóveis ativos o usuário do header x-user-id favoritou (0 sem usuário)."
+  favoritesCount: Int!
+}

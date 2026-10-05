@@ -9,6 +9,7 @@ import {
 } from "@qa/shared";
 import {
   Button,
+  Chip,
   Drawer,
   FilterBar,
   FilterPanel,
@@ -125,6 +126,17 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
           setPanelOpen(true);
         }}
         activeCount={countActiveFilters(state.filters)}
+        trailing={
+          <Chip
+            icon="heart"
+            selected={state.onlyFavorites === true}
+            onClick={() =>
+              setState((s) => ({ ...s, onlyFavorites: s.onlyFavorites ? undefined : true }))
+            }
+          >
+            Favoritos
+          </Chip>
+        }
       />
       <Drawer
         open={panelOpen}

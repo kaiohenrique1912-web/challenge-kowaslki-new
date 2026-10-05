@@ -1,0 +1,39 @@
+.qa-address-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--qa-space-4);
+  width: 100%;
+  padding: var(--qa-space-5) var(--qa-space-6);
+  border: 1px solid var(--qa-color-divider);
+  border-radius: var(--qa-radius-lg);
+  background: var(--qa-color-surface);
+  box-shadow: var(--qa-shadow-sm);
+  color: var(--qa-color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.qa-address-card:hover {
+  border-color: var(--qa-color-border-strong);
+}
+
+.qa-address-card:focus-visible {
+  outline: none;
+  box-shadow: var(--qa-focus-ring);
+}
+
+.qa-address-card__text {
+  display: grid;
+  gap: var(--qa-space-1);
+}
+
+.qa-address-card__street {
+  font-size: var(--qa-font-size-lg);
+  font-weight: var(--qa-font-weight-semibold);
+}
+
+.qa-address-card__place {
+  font-size: var(--qa-font-size-xs);
+  font-weight: var(--qa-font-weight-semibold);
+}

@@ -69,7 +69,7 @@ apps/
         neighborhoods/          # ✅ record, repository (inclui busca por nome), resolvers
         locations/              # ✅ autocomplete: service + repository (ruas)
         health/                 # ✅
-        favorites/ …            # Etapa 6 (mutations)
+        favorites/              # ✅ addFavorite/removeFavorite/favoritesCount (x-user-id)
         photos/                 # ✅ GET /static/photos/{room}-{variant}.svg (placeholders)
       testing/test-app.ts       # ✅ banco em memória com 5.000 imóveis + gql() para testes
       bench/search-bench.ts     # ✅ `bun run bench` — tempos com o banco de 60k
@@ -93,7 +93,9 @@ apps/
       main.tsx                  # QueryClientProvider + RouterProvider + "@qa/ui/styles.css"
       router.tsx                # rotas (§8)
       graphql/operations.ts     # TODAS as operações (graphql`…`); generated/ = codegen
-      lib/                      # graphql-client (erros com field), user-id, query-client, hooks
+      lib/                      # graphql-client (erros com field), user-id, query-client, hooks,
+                                #   navigation (última busca para o "Voltar")
+      styles/map-markers.css    # posição dos marcadores do Leaflet (busca e detalhe)
       features/
         layout/                 # SiteHeader (AppHeader + router), NotFoundPage
         search/                 # SearchPage = SearchLayout + SearchFilters + ResultsList + SearchMap
@@ -104,7 +106,9 @@ apps/
           ResultsList.tsx       # ResultsHeader + SortMenu + cards + "Ver mais" + estados
           SearchMap.tsx         # Leaflet + clusters + sincronia com URL/lista
           map-utils.ts, search-page.css (só layout, só tokens)
-        property/PropertyPage.tsx  # provisória (detalhe completo na Etapa 6)
+        favorites/use-favorites.ts # useToggleFavorite (otimista em todos os caches), useFavoritesCount
+        property/               # ✅ PropertyPage (galeria, preços, características, itens, mapa),
+                                #    PropertyLocationMap, queries (usePropertyDetail)
 packages/
   shared/src/
     domain/                     # ✅ property.ts (enums/labels), amenities.ts (catálogo +
@@ -185,8 +189,9 @@ amenities: [Amenity!]!
 health: Health!
 ```
 
-**(planejado, Etapa 6)** `addFavorite(propertyId)` / `removeFavorite(propertyId)`. O filtro
-`onlyFavorites` e o campo `Property.isFavorite` já funcionam (lendo a tabela `favorites`).
+**Favoritos** (`favorite.graphql`): `addFavorite(propertyId)` / `removeFavorite(propertyId)`
+(idempotentes, exigem `x-user-id`; favoritar exige imóvel `ACTIVE` → senão `NOT_FOUND`) e
+`favoritesCount`. O filtro `onlyFavorites` e o campo `Property.isFavorite` leem a mesma tabela.
 
 Mapeamento resolver → "parent" (configurado em `apps/api/codegen.ts`): `Property` recebe
 `PropertyRecord`, `Neighborhood` recebe `NeighborhoodRecord`, `PropertyConnection` recebe
@@ -481,9 +486,9 @@ Rotas:
 - `/comprar/imovel` — busca em toda a cidade.
 - `/comprar/imovel/:bairroSlug` — busca num bairro (atalho SEO; equivale a `bairros=slug`).
 - `/` → redireciona para `/comprar/imovel`.
-- `/imovel/:id` — detalhe (provisório até a Etapa 6). O card navega na mesma aba, então o
+- `/imovel/:id` — detalhe do imóvel. O card navega na mesma aba (com `state.fromSearch`), então o
   "voltar" do navegador volta à busca com os filtros.
-- **(planejado, Etapa 6)** `/favoritos` — busca com `onlyFavorites`.
+- `/favoritos` → redireciona para `/comprar/imovel?favoritos=sim`.
 - Qualquer outra rota → página "não encontrada".
 
 Query string (nomes em pt-BR, valores legíveis; ausente = "Tanto faz"):
@@ -504,6 +509,7 @@ Query string (nomes em pt-BR, valores legíveis; ausente = "Tanto faz"):
 | `publicado` | `7d` (`hoje`,`7d`,`15d`,`30d`,`2m`,`6m`) | `publishedWithin` |
 | `mobiliado` / `metro` / `exclusivo` / `alugado` | `sim` \| `nao` | booleanos |
 | `itens` | `pool,gym,air-conditioning` (código do `AmenityCode` em kebab-case) | `amenities` |
+| `favoritos` | `sim` | `onlyFavorites` (lista e mapa) |
 | `ordem` | `proximos`, `relevancia`, `recentes`, `menor-valor`, `maior-valor`, `maior-retorno` | `sort` |
 
 Sobre o formato: o original usa segmentos de path com tokens (`/q-ate-400000`); optamos por
@@ -531,15 +537,25 @@ Valores inválidos na URL são descartados silenciosamente (a página nunca queb
   skeleton no cabeçalho, spinner no mapa), vazio (`StatusMessage` + "Limpar filtros"), erro
   (`StatusMessage tone="error"` + "Tentar novamente").
 - **Lista:** 24 por página; "Ver mais" busca a próxima com o cursor; nova busca volta ao topo.
-  O card navega na mesma aba (Ctrl/Cmd+clique abre em nova aba).
+  O card navega na mesma aba (Ctrl/Cmd+clique abre em nova aba). A posição de rolagem é salva
+  por URL (sessionStorage) e restaurada ao voltar do detalhe.
+- **Detalhe → "Voltar para a busca":** se veio da busca (`location.state.fromSearch`), volta no
+  histórico (filtros, páginas carregadas e rolagem preservados); senão, vai para a última busca
+  (`lib/navigation.ts`) ou para o bairro do imóvel.
 - **Favoritos:** `userId` UUID gerado e salvo em `localStorage` (`lib/user-id.ts`), enviado em
-  `x-user-id` em toda request. O coração do card e as mutations chegam na Etapa 6.
+  `x-user-id` em toda request. `useToggleFavorite()` atualiza na hora (otimista) a lista, a
+  prévia do mapa, o detalhe e o contador do cabeçalho; desfaz se a API falhar e recarrega as
+  buscas "só favoritos". "Ver favoritos" = `?favoritos=sim` (chip na barra e link no cabeçalho).
+- **Desempenho da tela:** cards memorizados (`PropertyCard` e `ResultCard` com callbacks
+  estáveis) — o hover só redesenha os cards afetados; o mapa troca só o ícone destacado; páginas
+  carregadas sob demanda (`React.lazy`): quem abre um imóvel não baixa a busca, e vice-versa.
 - **Fotos:** URLs relativas servidas pela API em `/static/photos/…` (§5.3); o Vite faz proxy
   de `/graphql` e `/static`.
 - **Teste de ponta a ponta:** `bun run e2e` (com `bun run dev` rodando) abre o Chrome/Edge
-  instalado sem janela e percorre 14 fluxos (busca, filtros rápidos e painel, ordenação,
+  instalado sem janela e percorre 20 fluxos (busca, filtros rápidos e painel, ordenação,
   "Ver mais", voltar, chips do mapa, mover o mapa, autocomplete, vazio, erro, URL inválida,
-  mobile). Prints em `apps/web/e2e/screenshots/` (fora do git).
+  favoritar, ver favoritos, detalhe com galeria, voltar mantendo filtros, desfavoritar,
+  imóvel inexistente, mobile). Prints em `apps/web/e2e/screenshots/` (fora do git).
 
 ## 10. Design system
 
