@@ -1,0 +1,80 @@
+.qa-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--qa-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--qa-radius-pill);
+  background: var(--qa-color-surface-muted);
+  color: var(--qa-color-text);
+  font-size: var(--qa-font-size-sm);
+  font-weight: var(--qa-font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--qa-duration-fast) ease,
+    border-color var(--qa-duration-fast) ease;
+}
+
+.qa-chip--md {
+  min-height: var(--qa-control-md);
+  padding: 0 var(--qa-space-5);
+}
+
+.qa-chip--sm {
+  min-height: var(--qa-control-sm);
+  padding: 0 var(--qa-space-4);
+}
+
+.qa-chip:hover:not(:disabled) {
+  background: var(--qa-color-surface-hover);
+}
+
+.qa-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--qa-focus-ring);
+}
+
+.qa-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.qa-chip--selected,
+.qa-chip--selected:hover:not(:disabled) {
+  background: var(--qa-color-primary-subtle);
+  border-color: var(--qa-color-primary-border);
+  color: var(--qa-color-primary);
+}
+
+.qa-chip--removable {
+  cursor: default;
+  padding-right: var(--qa-space-2);
+  box-shadow: var(--qa-shadow-md);
+}
+
+.qa-chip--removable.qa-chip--selected {
+  background: var(--qa-color-primary-subtle);
+}
+
+.qa-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.qa-chip__remove:hover {
+  background: rgb(0 0 0 / 0.06);
+}
+
+.qa-chip__remove:focus-visible {
+  outline: none;
+  box-shadow: var(--qa-focus-ring);
+}

@@ -1,0 +1,11 @@
+.qa-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--qa-space-2);
+  font-size: var(--qa-font-size-md);
+  color: var(--qa-color-text);
+}
+
+.qa-tag--unavailable {
+  color: var(--qa-color-text-subtle);
+}

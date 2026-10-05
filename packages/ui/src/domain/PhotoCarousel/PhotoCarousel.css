@@ -1,0 +1,107 @@
+.qa-carousel {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--qa-radius-lg);
+  background: var(--qa-color-surface-muted);
+}
+
+.qa-carousel__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qa-carousel__empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--qa-space-2);
+  height: 100%;
+  color: var(--qa-color-text-subtle);
+  font-size: var(--qa-font-size-sm);
+}
+
+.qa-carousel__overlay {
+  position: absolute;
+  top: var(--qa-space-3);
+  left: var(--qa-space-3);
+  right: var(--qa-space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--qa-space-2);
+  pointer-events: none;
+}
+
+.qa-carousel__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: none;
+  border-radius: 50%;
+  background: var(--qa-color-surface);
+  color: var(--qa-color-text);
+  box-shadow: var(--qa-shadow-md);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--qa-duration-fast) ease;
+}
+
+.qa-carousel__nav--prev {
+  left: var(--qa-space-2);
+}
+
+.qa-carousel__nav--next {
+  right: var(--qa-space-2);
+}
+
+.qa-carousel:hover .qa-carousel__nav,
+.qa-carousel:focus-within .qa-carousel__nav {
+  opacity: 1;
+}
+
+.qa-carousel__nav:focus-visible {
+  outline: none;
+  box-shadow: var(--qa-focus-ring);
+}
+
+.qa-carousel__dots {
+  position: absolute;
+  bottom: var(--qa-space-3);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: var(--qa-space-2);
+  transform: translateX(-50%);
+}
+
+.qa-carousel__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--qa-color-surface);
+  opacity: 0.6;
+}
+
+.qa-carousel__dot--active {
+  opacity: 1;
+}
+
+.qa-carousel__dot--edge {
+  width: 4px;
+  height: 4px;
+}
+
+/* Sem hover (toque): setas sempre visíveis. */
+@media (hover: none) {
+  .qa-carousel__nav {
+    opacity: 0.85;
+  }
+}

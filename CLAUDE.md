@@ -16,7 +16,8 @@ Outros documentos:
 - [docs/feature-analysis.md](docs/feature-analysis.md) — levantamento do site original.
 - [docs/reference/](docs/reference/) — prints do original (fonte para fidelidade visual).
 - [PROGRESS.md](PROGRESS.md) — etapas do projeto e o que já está pronto.
-- `docs/design-system.md` — tokens e componentes (criado na Etapa 4).
+- [docs/design-system.md](docs/design-system.md) — tokens, componentes, quando usar cada um,
+  regras de acessibilidade e receita para criar componente. **Leia antes de mexer em tela.**
 
 ## Stack
 
@@ -67,7 +68,10 @@ Arquivos-chave hoje:
   `packages/shared/src/validation/` — `propertyInputSchema`, `searchArgsSchema` e afins;
   `packages/shared/src/format/` — `formatBRL`, `propertyTitle`, `propertyHeadline`, `slugify`.
 - `apps/web/src/lib/graphql-client.ts` — cliente GraphQL.
-- `packages/ui/src/tokens/tokens.css` — tokens; `packages/ui/src/components/` — componentes + stories.
+- `packages/ui/src/tokens/tokens.ts` — tokens (fonte única; `tokens.css` é gerado);
+  `packages/ui/src/components/` — componentes base; `packages/ui/src/domain/` — componentes de
+  imóveis (`PropertyCard`, `FilterBar`, `MapCluster`…); `packages/ui/src/index.ts` — exports;
+  `packages/ui/src/stories.test.tsx` — renderiza todas as stories e checa acessibilidade.
 
 ## Comandos
 
@@ -87,6 +91,7 @@ Pré-requisito único: **Bun ≥ 1.4** (Node não é necessário). Rode tudo na 
 | Lint / corrigir formatação | `bun run lint` / `bun run format` (Biome) |
 | Storybook | `bun run storybook` → http://localhost:6006 |
 | Build do Storybook | `bun run build-storybook` |
+| Regerar `tokens.css` após editar `tokens.ts` | `cd packages/ui && bun run tokens` |
 | Gerar tipos GraphQL após mudar o SDL | `bun run codegen` |
 | Medir a busca com o banco de 60k | `bun run bench` (rode o seed antes) |
 
@@ -104,7 +109,9 @@ padrão `http://localhost:4000`), Storybook `6006`. Banco em `apps/api/data/app.
   **repository** (só SQL parametrizado). Filtros de imóveis só em `property-where.ts`.
 - Regras de negócio, enums, faixas, labels e formatação **só** em `packages/shared`. Nunca
   redefina um enum, label ou faixa em `api` ou `web` — importe.
-- UI só com componentes de `packages/ui`; faltou um componente? Crie lá, com story.
+- UI só com componentes de `packages/ui`; faltou um componente? Crie lá, com story cobrindo os
+  estados (receita em docs/design-system.md §6). CSS de componente usa **só tokens**
+  (`var(--qa-…)`); classes BEM com prefixo `qa-`. `ui` não faz chamadas de rede.
 - Schema GraphQL (SDL) é a fonte da verdade do contrato; após alterá-lo rode `bun run codegen`.
   Resolvers são tipados com `Resolvers` gerado; nunca edite `graphql/generated/`.
 - Toda entrada da API é validada no serviço com um schema zod de `shared` via `parseOrThrow`

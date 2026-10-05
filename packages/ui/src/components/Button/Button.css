@@ -3,12 +3,17 @@
   align-items: center;
   justify-content: center;
   gap: var(--qa-space-2);
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--qa-radius-pill);
   font-family: var(--qa-font-family);
   font-weight: var(--qa-font-weight-bold);
+  line-height: var(--qa-line-height-tight);
+  white-space: nowrap;
   cursor: pointer;
-  transition: background-color 120ms ease;
+  transition:
+    background-color var(--qa-duration-fast) ease,
+    color var(--qa-duration-fast) ease,
+    border-color var(--qa-duration-fast) ease;
 }
 
 .qa-button:focus-visible {
@@ -21,13 +26,24 @@
   opacity: 0.5;
 }
 
+.qa-button--loading:disabled {
+  cursor: progress;
+  opacity: 0.8;
+}
+
+.qa-button--full {
+  width: 100%;
+}
+
 .qa-button--md {
-  padding: var(--qa-space-3) var(--qa-space-6);
+  min-height: var(--qa-control-md);
+  padding: 0 var(--qa-space-6);
   font-size: var(--qa-font-size-md);
 }
 
 .qa-button--sm {
-  padding: var(--qa-space-2) var(--qa-space-4);
+  min-height: var(--qa-control-sm);
+  padding: 0 var(--qa-space-4);
   font-size: var(--qa-font-size-sm);
 }
 
@@ -40,11 +56,38 @@
   background: var(--qa-color-primary-hover);
 }
 
+.qa-button--primary:active:not(:disabled) {
+  background: var(--qa-color-primary-pressed);
+}
+
 .qa-button--secondary {
-  background: var(--qa-color-neutral-100);
+  background: var(--qa-color-surface-muted);
   color: var(--qa-color-text);
 }
 
 .qa-button--secondary:hover:not(:disabled) {
-  background: var(--qa-color-neutral-200);
+  background: var(--qa-color-surface-hover);
+}
+
+.qa-button--outline {
+  background: var(--qa-color-surface);
+  border-color: var(--qa-color-border);
+  color: var(--qa-color-text);
+}
+
+.qa-button--outline:hover:not(:disabled) {
+  border-color: var(--qa-color-border-strong);
+  background: var(--qa-color-surface-muted);
+}
+
+.qa-button--link {
+  min-height: auto;
+  padding: var(--qa-space-1) var(--qa-space-2);
+  background: transparent;
+  color: var(--qa-color-primary);
+}
+
+.qa-button--link:hover:not(:disabled) {
+  color: var(--qa-color-primary-hover);
+  text-decoration: underline;
 }

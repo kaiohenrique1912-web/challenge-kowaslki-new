@@ -1,0 +1,57 @@
+.qa-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  color: var(--qa-color-text);
+  cursor: pointer;
+  transition: background-color var(--qa-duration-fast) ease;
+}
+
+.qa-icon-button:focus-visible {
+  outline: none;
+  box-shadow: var(--qa-focus-ring);
+}
+
+.qa-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.qa-icon-button--md {
+  width: var(--qa-control-md);
+  height: var(--qa-control-md);
+}
+
+.qa-icon-button--sm {
+  width: var(--qa-control-sm);
+  height: var(--qa-control-sm);
+}
+
+.qa-icon-button--ghost {
+  background: transparent;
+}
+
+.qa-icon-button--ghost:hover:not(:disabled) {
+  background: var(--qa-color-surface-muted);
+}
+
+.qa-icon-button--muted {
+  background: var(--qa-color-surface-muted);
+}
+
+.qa-icon-button--muted:hover:not(:disabled) {
+  background: var(--qa-color-surface-hover);
+}
+
+.qa-icon-button--surface {
+  background: var(--qa-color-surface);
+  box-shadow: var(--qa-shadow-md);
+}
+
+.qa-icon-button--surface:hover:not(:disabled) {
+  background: var(--qa-color-surface-muted);
+}

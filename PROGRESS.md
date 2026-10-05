@@ -19,7 +19,13 @@
   Validação zod de `shared` com erros pt-BR. Camadas resolver → service → repository.
   101 testes. `bun run bench`: todas as buscas com p50 < 50 ms em 60k imóveis (pior caso:
   mapa da cidade inteira, p95 69 ms). Mutations de favoritos ficam para a Etapa 6.
-- [ ] **Etapa 4: Design system + Storybook**
+- [x] **Etapa 4: Design system + Storybook** — tokens (fonte única em `tokens.ts`, CSS gerado),
+  fonte Inter local, 19 componentes base (Button, IconButton, Input, Select, Checkbox, Toggle,
+  Chip, SegmentedControl, CounterSelector, RangeSlider, RangeField, Badge, Tag, Skeleton,
+  Spinner, Tooltip, Modal, Drawer, Pagination) e 7 de domínio (PropertyCard, PhotoCarousel,
+  PropertyBadges, PriceTag, FavoriteButton, FilterBar, MapCluster/MapPin). 120 stories em 25
+  componentes; teste que renderiza todas e checa acessibilidade; addon a11y no Storybook.
+  `docs/design-system.md`. 130 testes no total.
 - [ ] **Etapa 5: Frontend da busca (lista + filtros + mapa)**
 - [ ] **Etapa 6: Página de detalhe, favoritos e acabamento**
 - [ ] **Etapa 7: Preparação para agentes e validação one-shot**

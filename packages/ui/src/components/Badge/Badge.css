@@ -1,0 +1,36 @@
+.qa-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--qa-space-2);
+  border-radius: var(--qa-radius-md);
+  font-size: var(--qa-font-size-xs);
+  font-weight: var(--qa-font-weight-bold);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.qa-badge--overlay {
+  background: var(--qa-color-surface);
+  color: var(--qa-color-text);
+  box-shadow: var(--qa-shadow-sm);
+}
+
+.qa-badge--neutral {
+  background: var(--qa-color-surface-muted);
+  color: var(--qa-color-text);
+}
+
+.qa-badge--primary {
+  background: var(--qa-color-primary-subtle);
+  color: var(--qa-color-primary);
+}
+
+.qa-badge--success {
+  background: var(--qa-color-success-subtle);
+  color: var(--qa-color-success);
+}
+
+.qa-badge--danger {
+  background: var(--qa-color-danger-subtle);
+  color: var(--qa-color-danger);
+}

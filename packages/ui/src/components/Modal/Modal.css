@@ -1,0 +1,104 @@
+.qa-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: var(--qa-z-index-modal);
+  display: flex;
+}
+
+.qa-dialog__overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--qa-color-overlay);
+}
+
+.qa-dialog__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  background: var(--qa-color-surface);
+  box-shadow: var(--qa-shadow-lg);
+  outline: none;
+}
+
+.qa-dialog__header {
+  display: flex;
+  align-items: center;
+  gap: var(--qa-space-2);
+  padding: var(--qa-space-3) var(--qa-space-3) 0;
+}
+
+.qa-dialog__title {
+  margin: 0;
+  font-size: var(--qa-font-size-lg);
+  font-weight: var(--qa-font-weight-bold);
+}
+
+.qa-dialog__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--qa-space-4) var(--qa-space-6) var(--qa-space-6);
+}
+
+.qa-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--qa-space-4);
+  padding: var(--qa-space-4) var(--qa-space-6);
+  border-top: 1px solid var(--qa-color-divider);
+}
+
+/* Modal: centralizado. */
+.qa-dialog--modal {
+  align-items: center;
+  justify-content: center;
+  padding: var(--qa-space-4);
+}
+
+.qa-dialog--modal .qa-dialog__panel {
+  width: min(520px, 100%);
+  max-height: calc(100vh - var(--qa-space-8));
+  border-radius: var(--qa-radius-xl);
+  animation: qa-dialog-in var(--qa-duration-normal) ease-out;
+}
+
+/* Drawer: painel lateral (tela cheia no mobile). */
+.qa-dialog--drawer.qa-dialog--right {
+  justify-content: flex-end;
+}
+
+.qa-dialog--drawer .qa-dialog__panel {
+  width: min(520px, 100%);
+  height: 100%;
+  animation: qa-drawer-in var(--qa-duration-normal) ease-out;
+}
+
+.qa-dialog--drawer.qa-dialog--left .qa-dialog__panel {
+  animation-name: qa-drawer-in-left;
+}
+
+@media (max-width: 767px) {
+  .qa-dialog--drawer .qa-dialog__panel {
+    width: 100%;
+  }
+}
+
+@keyframes qa-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes qa-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes qa-drawer-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+}

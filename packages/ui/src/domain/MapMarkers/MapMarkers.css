@@ -1,0 +1,59 @@
+.qa-map-cluster {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--qa-space-2);
+  border: 2px solid var(--qa-color-surface);
+  border-radius: var(--qa-radius-pill);
+  background: var(--qa-color-surface);
+  color: var(--qa-color-text);
+  font-family: var(--qa-font-family);
+  font-weight: var(--qa-font-weight-bold);
+  box-shadow: var(--qa-shadow-map);
+  cursor: pointer;
+  transition:
+    transform var(--qa-duration-fast) ease,
+    background-color var(--qa-duration-fast) ease,
+    color var(--qa-duration-fast) ease;
+}
+
+.qa-map-cluster--sm {
+  min-width: 36px;
+  height: 36px;
+  font-size: var(--qa-font-size-sm);
+}
+
+.qa-map-cluster--md {
+  min-width: 44px;
+  height: 44px;
+  font-size: var(--qa-font-size-sm);
+}
+
+.qa-map-cluster--lg {
+  min-width: 56px;
+  height: 44px;
+  font-size: var(--qa-font-size-xs);
+}
+
+.qa-map-cluster:hover,
+.qa-map-cluster--highlighted {
+  transform: scale(1.12);
+  background: var(--qa-color-primary);
+  border-color: var(--qa-color-primary);
+  color: var(--qa-color-on-primary);
+}
+
+.qa-map-cluster:focus-visible {
+  outline: none;
+  box-shadow: var(--qa-shadow-map), var(--qa-focus-ring);
+}
+
+.qa-map-pin {
+  display: inline-block;
+  color: var(--qa-color-map-pin);
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.3));
+}
+
+.qa-map-pin path {
+  fill: currentColor;
+}

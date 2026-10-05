@@ -2,9 +2,12 @@ import { describe, expect, test } from "bun:test";
 import {
   formatArea,
   formatBRL,
+  monthlyCostLabel,
   pluralize,
+  propertyAttributesLine,
   propertyHeadline,
   propertyTitle,
+  publicAddress,
 } from "./property-text.ts";
 
 describe("property texts", () => {
@@ -21,6 +24,20 @@ describe("property texts", () => {
     );
     expect(propertyTitle({ type: "STUDIO", bedrooms: 0, neighborhoodName: "Sé" })).toBe(
       "Studio à venda em Sé",
+    );
+  });
+
+  test("card attributes line, monthly cost and address", () => {
+    const apt = { type: "APARTMENT" as const, area: 120, bedrooms: 3, parkingSpaces: 2 };
+    expect(propertyAttributesLine(apt)).toBe("120 m² · 3 quartos · 2 vagas");
+    expect(propertyAttributesLine({ ...apt, parkingSpaces: 0 })).toBe("120 m² · 3 quartos");
+    expect(propertyAttributesLine({ ...apt, type: "STUDIO", bedrooms: 0, parkingSpaces: 1 })).toBe(
+      "120 m² · Studio · 1 vaga",
+    );
+    expect(monthlyCostLabel(2_350)).toBe("Condo. + IPTU R$ 2.350");
+    expect(monthlyCostLabel(0)).toBe("Sem condomínio e IPTU");
+    expect(publicAddress("Rua João Moura", "Pinheiros")).toBe(
+      "Rua João Moura, Pinheiros · São Paulo",
     );
   });
 

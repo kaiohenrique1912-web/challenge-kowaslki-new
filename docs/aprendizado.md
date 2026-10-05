@@ -388,3 +388,106 @@ bun test                   # roda os 101 testes
 | p50 / p95 | Tempo da busca "típica" (metade é mais rápida) / das 95% mais rápidas. |
 | Benchmark | Teste que mede velocidade. |
 
+---
+
+# Aprendizado — Etapa 4 (Design system + Storybook)
+
+> Na Etapa 4 foi construído o **kit de peças visuais** do projeto: cores, fontes, tamanhos e todos os componentes (botões, campos, card do imóvel, barra de filtros, bolinhas do mapa…). A tela de busca (Etapa 5) vai ser montada **encaixando essas peças**, como Lego. Dá para ver todas em http://localhost:6006 com `bun run storybook`.
+
+## 1. O que foi feito, passo a passo
+
+### 1.1 Tokens: as decisões visuais em um lugar só (`packages/ui/src/tokens/tokens.ts`)
+Um **token** é uma decisão visual com nome. Em vez de espalhar `#3b5bc2` pelo código, todo mundo usa `--qa-color-primary` ("a cor principal"). Se um dia o azul mudar, muda-se **um** arquivo. Os tokens criados:
+
+- **Cores** tiradas dos prints: o azul dos botões, o azul-clarinho do filtro selecionado, o cinza das pílulas, os tons de texto, o vermelho do pino do mapa, o rosa do coração.
+- **Tipografia:** fonte **Inter** (gratuita, parecida com a do QuintoAndar, instalada no projeto, sem depender de internet) e tamanhos de 12 a 44 px.
+- **Espaçamentos** em múltiplos de 4 px, **bordas arredondadas** (8 px nos campos, 12 px nos cards, pílula nos botões), **sombras** e **breakpoints** (larguras de tela).
+
+O arquivo de CSS com os tokens é **gerado automaticamente** a partir do TypeScript (`bun run tokens`). Um teste falha se alguém editar um e esquecer o outro, e outro teste falha se algum componente usar um token que não existe.
+
+### 1.2 Componentes base (`packages/ui/src/components/`)
+São as peças genéricas, que serviriam para qualquer site:
+
+| Peça | Exemplo no QuintoAndar |
+|---|---|
+| `Button` | "Buscar imóveis" (azul), "Mais relevantes" (cinza), "Limpar" (link) |
+| `IconButton` | O "×" de fechar, as setas das fotos |
+| `Input` | Campos "Mínimo R$" e "Máximo R$" |
+| `Select` | Lista de ordenação |
+| `Checkbox` | "Piscina", "Academia"… no painel de filtros |
+| `Toggle` | Interruptor "Buscar ao mover o mapa" |
+| `Chip` | As pílulas "Tipos de imóvel ▾", "3+ quartos" |
+| `SegmentedControl` | "Alugar \| Comprar" |
+| `CounterSelector` | "Tanto faz · 1+ · 2+ · 3+" |
+| `RangeSlider` / `RangeField` | Slider de preço com duas bolinhas + campos mínimo/máximo |
+| `Badge` / `Tag` | "Exclusivo" na foto; "✓ Varanda" no detalhe |
+| `Skeleton` / `Spinner` | Blocos cinza piscando enquanto carrega |
+| `Tooltip` | Balão preto "Que tal salvar este imóvel?" |
+| `Modal` / `Drawer` | Janela central / painel lateral "Mais filtros" |
+| `Pagination` | Páginas numeradas (a busca usa "Ver mais") |
+
+### 1.3 Componentes de domínio (`packages/ui/src/domain/`)
+São as peças **específicas de imóveis**:
+
+- **`PropertyCard`**: o card da lista, igual ao print: fotos com bolinhas e selos, título pequeno, preço em negrito, "Condo. + IPTU", coração, "120 m² · 3 quartos · 2 vagas" e endereço sem número. O card inteiro é clicável.
+- **`PhotoCarousel`**, **`PropertyBadges`** (no máximo 2 selos, na ordem das regras), **`PriceTag`**, **`FavoriteButton`**.
+- **`FilterBar`**: a barra de filtros do topo.
+- **`MapCluster`** e **`MapPin`**: a bolinha branca com número e o pino vermelho do mapa.
+
+Esses componentes **não inventam texto**: "Condo. + IPTU R$ 2.350", "Sem condomínio e IPTU" e "120 m² · Studio" vêm de funções do `packages/shared`, as mesmas regras de negócio da Etapa 0. E o erro do slider de preço usa **a mesma validação da API**, então a mensagem na tela é idêntica à do servidor.
+
+### 1.4 Storybook: o catálogo
+Cada componente tem um arquivo `.stories.tsx` com seus **estados**: normal, selecionado, desabilitado, carregando, com erro, vazio e no celular. São **120 stories**. Assim dá para ver e testar cada peça isolada, sem precisar subir o site inteiro nem ter dados.
+
+### 1.5 Acessibilidade
+"Acessível" significa que dá para usar **só com o teclado** e com **leitor de tela** (o programa que lê a tela em voz alta para pessoas cegas):
+
+- todo campo tem um rótulo e todo botão de ícone tem nome ("Fechar", "Favoritar");
+- dá para ver onde está o foco do teclado (anel azul);
+- nas pílulas de escolha única as **setas** do teclado mudam a opção;
+- o painel de filtros prende o Tab dentro dele, fecha com **Esc** e devolve o foco a quem o abriu;
+- quem pede "menos movimento" no sistema operacional não vê animações.
+
+Há um **teste automático** que desenha todas as 120 stories e reprova se encontrar imagem sem descrição, botão sem nome ou campo sem rótulo. No Storybook, a aba **Accessibility** mostra problemas de contraste de cor.
+
+### 1.6 `docs/design-system.md`
+É o manual das peças: os tokens, **quando usar cada componente** (e quando não usar), as regras de acessibilidade, um "mapa" de qual peça forma cada parte dos prints e a **receita para criar um componente novo**. É o que a IA vai ler antes de montar qualquer tela.
+
+## 2. Problemas encontrados e como foram resolvidos
+
+- **Painel roubando o foco:** o código que mantém o foco dentro do painel de filtros rodava de novo a cada atualização da tela e jogaria o cursor de volta para o primeiro botão enquanto você digitava. Foi corrigido antes de qualquer uso.
+- **O teste de acessibilidade pegou dois problemas reais:** o interruptor (`Toggle`) dependia de uma forma frágil de dar nome ao botão, e o slider usava nomes de variável que pareciam tokens sem ser. Os dois foram corrigidos.
+- **Avisos do lint:** duas stories se chamavam `Error`, nome que já existe no JavaScript (viraram `WithError`), e o Esc do tooltip saiu de um elemento "mudo" para o próprio botão.
+
+## 3. Resultado
+
+| Item | Quantidade |
+|---|---|
+| Componentes base | 19 |
+| Componentes de domínio | 7 |
+| Stories no Storybook | 120 |
+| Testes do projeto | 130 passando |
+
+## 4. Como ver
+
+```
+bun run storybook     # abre o catálogo em http://localhost:6006
+```
+
+Sugestões para olhar primeiro: **Domain › PropertyCard › Results Grid** (os cards como na busca), **Base › Drawer › Filters Panel** (o painel "Mais filtros"), **Base › RangeField › Min Greater Than Max** (o erro de validação) e **Foundations › Tokens** (todas as cores e tamanhos).
+
+## 5. Glossário da Etapa 4
+
+| Termo | Significado |
+|---|---|
+| Design system | Conjunto padronizado de decisões visuais e componentes reutilizáveis. |
+| Token | Decisão visual com nome (ex.: `--qa-color-primary` = o azul principal). |
+| Componente | Peça de interface reutilizável (botão, card…). |
+| Story | Um "retrato" de um componente num estado específico, dentro do Storybook. |
+| Props | As "configurações" que se passa para um componente (texto, cor, se está desabilitado…). |
+| Acessibilidade (a11y) | Garantir que pessoas com deficiência consigam usar o sistema. |
+| Leitor de tela | Programa que lê o conteúdo da tela em voz alta. |
+| Foco | Qual elemento recebe as teclas no momento (navegando com Tab). |
+| BEM | Jeito de nomear classes CSS: `bloco__parte--variante` (ex.: `qa-chip--selected`). |
+| Breakpoint | Largura de tela a partir da qual o layout muda (ex.: celular × notebook). |
+

@@ -1,0 +1,61 @@
+/*
+ * Estilos globais do design system. Importe UMA vez na raiz da app: `import "@qa/ui/styles.css"`.
+ * Inclui a fonte (Inter, servida localmente via @fontsource), os tokens e uma base mínima.
+ */
+@import "@fontsource-variable/inter";
+@import "../tokens/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--qa-font-family);
+  font-size: var(--qa-font-size-md);
+  line-height: var(--qa-line-height-normal);
+  color: var(--qa-color-text);
+  background: var(--qa-color-surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* Texto só para leitores de tela. */
+.qa-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Quem pede menos movimento no sistema operacional não vê animações. O !important é
+   necessário para vencer as animações declaradas nos componentes. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: precisa vencer as animações dos componentes */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: precisa vencer as transições dos componentes */
+    transition-duration: 0.01ms !important;
+  }
+}

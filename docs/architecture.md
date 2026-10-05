@@ -510,9 +510,16 @@ Valores inválidos na URL são descartados silenciosamente (a página nunca queb
 
 ## 10. Design system
 
-`packages/ui` expõe tokens como CSS custom properties (`--qa-color-primary`, …) e um espelho
-TS. Componentes usam só tokens (nunca cores/espaçamentos literais). Cada componente tem story
-cobrindo seus estados. Detalhes em `docs/design-system.md` (criado na Etapa 4).
+`packages/ui` expõe tokens como CSS custom properties (`--qa-color-primary`, …) gerados a partir
+de `tokens.ts` (fonte única), componentes base (`components/`) e de domínio (`domain/`), cada um
+com `.tsx` + `.css` (BEM `qa-`, só tokens) + `.stories.tsx`. CSS global (fonte Inter local via
+`@fontsource-variable/inter`, tokens, base) em `@qa/ui/styles.css`. Sem CSS-in-JS e sem
+dependência de UI externa. Detalhes, catálogo e receita em
+[design-system.md](design-system.md).
+
+Validação: `stories.test.tsx` renderiza todas as stories com `react-dom/server` e checa
+acessibilidade básica via `HTMLRewriter` (Bun); `tokens.test.ts` garante `tokens.css` em dia e
+nenhum `var(--qa-…)` inexistente; o Storybook roda o addon a11y (axe).
 
 ## 11. Convenções de código
 

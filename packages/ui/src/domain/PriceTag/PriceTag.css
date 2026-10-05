@@ -1,0 +1,36 @@
+.qa-price {
+  display: grid;
+  gap: 2px;
+}
+
+.qa-price__sale {
+  font-weight: var(--qa-font-weight-bold);
+  color: var(--qa-color-text);
+  line-height: var(--qa-line-height-tight);
+}
+
+.qa-price__monthly {
+  color: var(--qa-color-text-muted);
+}
+
+.qa-price__previous {
+  color: var(--qa-color-text-subtle);
+  font-size: var(--qa-font-size-sm);
+}
+
+.qa-price--sm .qa-price__sale {
+  font-size: var(--qa-font-size-lg);
+}
+
+.qa-price--sm .qa-price__monthly {
+  font-size: var(--qa-font-size-sm);
+}
+
+.qa-price--lg .qa-price__sale {
+  font-size: var(--qa-font-size-2xl);
+}
+
+.qa-price--lg .qa-price__monthly {
+  font-size: var(--qa-font-size-xl);
+  font-weight: var(--qa-font-weight-semibold);
+}

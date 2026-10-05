@@ -1,0 +1,45 @@
+.qa-segmented {
+  display: inline-flex;
+  gap: var(--qa-space-1);
+  padding: var(--qa-space-1);
+  border-radius: var(--qa-radius-pill);
+  background: var(--qa-color-surface-muted);
+}
+
+.qa-segmented__option {
+  border: none;
+  border-radius: var(--qa-radius-pill);
+  background: transparent;
+  color: var(--qa-color-text);
+  font-weight: var(--qa-font-weight-bold);
+  cursor: pointer;
+  transition:
+    background-color var(--qa-duration-fast) ease,
+    color var(--qa-duration-fast) ease;
+}
+
+.qa-segmented--md .qa-segmented__option {
+  min-height: calc(var(--qa-control-md) - var(--qa-space-2));
+  padding: 0 var(--qa-space-6);
+  font-size: var(--qa-font-size-md);
+}
+
+.qa-segmented--sm .qa-segmented__option {
+  min-height: calc(var(--qa-control-sm) - var(--qa-space-2));
+  padding: 0 var(--qa-space-4);
+  font-size: var(--qa-font-size-sm);
+}
+
+.qa-segmented__option:hover:not([aria-checked="true"]) {
+  background: var(--qa-color-surface-hover);
+}
+
+.qa-segmented__option[aria-checked="true"] {
+  background: var(--qa-color-primary);
+  color: var(--qa-color-on-primary);
+}
+
+.qa-segmented__option:focus-visible {
+  outline: none;
+  box-shadow: var(--qa-focus-ring);
+}

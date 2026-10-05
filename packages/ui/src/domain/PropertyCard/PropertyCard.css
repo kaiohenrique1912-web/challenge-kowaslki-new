@@ -1,0 +1,87 @@
+.qa-property-card {
+  position: relative;
+  display: grid;
+  gap: var(--qa-space-3);
+  min-width: 0;
+  border-radius: var(--qa-radius-lg);
+  transition: box-shadow var(--qa-duration-fast) ease;
+}
+
+.qa-property-card--highlighted {
+  box-shadow: 0 0 0 3px var(--qa-color-primary-border);
+}
+
+.qa-property-card__body {
+  display: grid;
+  gap: var(--qa-space-2);
+  padding: 0 var(--qa-space-1) var(--qa-space-2);
+}
+
+.qa-property-card__title {
+  margin: 0;
+  font-size: var(--qa-font-size-xs);
+  font-weight: var(--qa-font-weight-regular);
+  line-height: var(--qa-line-height-normal);
+  color: var(--qa-color-text-muted);
+}
+
+.qa-property-card__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* "Stretched link": o card inteiro clica no link do título. */
+.qa-property-card__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--qa-radius-lg);
+}
+
+.qa-property-card__link:focus-visible {
+  outline: none;
+}
+
+.qa-property-card__link:focus-visible::after {
+  box-shadow: var(--qa-focus-ring);
+}
+
+.qa-property-card:hover .qa-property-card__link {
+  text-decoration: underline;
+}
+
+.qa-property-card__price-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--qa-space-3);
+}
+
+/* Controles acima do link esticado continuam clicáveis. */
+.qa-property-card__favorite,
+.qa-property-card .qa-carousel__nav {
+  position: relative;
+  z-index: 2;
+}
+
+.qa-property-card__attributes {
+  margin: 0;
+  font-size: var(--qa-font-size-sm);
+  font-weight: var(--qa-font-weight-semibold);
+  color: var(--qa-color-text);
+}
+
+.qa-property-card__address {
+  margin: 0;
+  font-size: var(--qa-font-size-sm);
+  color: var(--qa-color-text-muted);
+}
+
+.qa-property-card__photo-skeleton {
+  aspect-ratio: 3 / 2;
+}
+
+.qa-property-card--skeleton .qa-property-card__body {
+  gap: var(--qa-space-3);
+}

@@ -1,27 +1,79 @@
-/*
- * Tokens do design system (versão inicial — a paleta completa vem na Etapa 4).
- * Componentes usam só estas variáveis, nunca valores literais.
- */
+/* GERADO por `bun run tokens` a partir de tokens.ts — não edite à mão. */
 :root {
   --qa-color-primary: #3b5bc2;
   --qa-color-primary-hover: #2f4aa3;
+  --qa-color-primary-pressed: #263d88;
   --qa-color-primary-subtle: #eef1fc;
+  --qa-color-primary-border: #c4cff2;
   --qa-color-on-primary: #ffffff;
-  --qa-color-neutral-100: #f3f3f3;
-  --qa-color-neutral-200: #e6e6e6;
   --qa-color-text: #1f1f1f;
-  --qa-color-text-muted: #6b6b6b;
-
-  --qa-font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --qa-color-text-muted: #5c5c5c;
+  --qa-color-text-subtle: #8a8a8a;
+  --qa-color-text-inverse: #ffffff;
+  --qa-color-surface: #ffffff;
+  --qa-color-surface-muted: #f3f3f3;
+  --qa-color-surface-hover: #e8e8e8;
+  --qa-color-surface-inverse: #1f1f1f;
+  --qa-color-overlay: rgb(0 0 0 / 0.45);
+  --qa-color-border: #d9d9d9;
+  --qa-color-border-strong: #b3b3b3;
+  --qa-color-divider: #ebebeb;
+  --qa-color-danger: #d93a3a;
+  --qa-color-danger-subtle: #fdecec;
+  --qa-color-success: #1f8a4c;
+  --qa-color-success-subtle: #e7f5ec;
+  --qa-color-warning: #b26a00;
+  --qa-color-favorite: #e0245e;
+  --qa-color-map-pin: #e8423f;
+  --qa-color-skeleton: #ececec;
+  --qa-color-skeleton-highlight: #f6f6f6;
+  --qa-font-family: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --qa-font-size-xs: 0.75rem;
   --qa-font-size-sm: 0.875rem;
   --qa-font-size-md: 1rem;
+  --qa-font-size-lg: 1.125rem;
+  --qa-font-size-xl: 1.5rem;
+  --qa-font-size-2xl: 2rem;
+  --qa-font-size-3xl: 2.75rem;
+  --qa-font-weight-regular: 400;
+  --qa-font-weight-medium: 500;
+  --qa-font-weight-semibold: 600;
   --qa-font-weight-bold: 700;
-
+  --qa-line-height-tight: 1.2;
+  --qa-line-height-normal: 1.45;
+  --qa-space-0: 0;
+  --qa-space-1: 0.25rem;
   --qa-space-2: 0.5rem;
   --qa-space-3: 0.75rem;
   --qa-space-4: 1rem;
+  --qa-space-5: 1.25rem;
   --qa-space-6: 1.5rem;
-
+  --qa-space-8: 2rem;
+  --qa-space-10: 2.5rem;
+  --qa-space-12: 3rem;
+  --qa-space-16: 4rem;
+  --qa-radius-sm: 4px;
+  --qa-radius-md: 8px;
+  --qa-radius-lg: 12px;
+  --qa-radius-xl: 16px;
   --qa-radius-pill: 999px;
-  --qa-focus-ring: 0 0 0 3px rgb(59 91 194 / 0.35);
+  --qa-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.08);
+  --qa-shadow-md: 0 4px 16px rgb(0 0 0 / 0.12);
+  --qa-shadow-lg: 0 12px 40px rgb(0 0 0 / 0.18);
+  --qa-shadow-map: 0 2px 6px rgb(0 0 0 / 0.25);
+  --qa-control-sm: 2.25rem;
+  --qa-control-md: 3rem;
+  --qa-z-index-dropdown: 100;
+  --qa-z-index-sticky: 200;
+  --qa-z-index-overlay: 900;
+  --qa-z-index-modal: 1000;
+  --qa-z-index-tooltip: 1100;
+  --qa-duration-fast: 120ms;
+  --qa-duration-normal: 200ms;
+  --qa-focus-ring: 0 0 0 3px rgb(59 91 194 / 0.4);
+  --qa-breakpoint-sm: 640px;
+  --qa-breakpoint-md: 768px;
+  --qa-breakpoint-lg: 1024px;
+  --qa-breakpoint-xl: 1280px;
+  --qa-breakpoint-2xl: 1536px;
 }

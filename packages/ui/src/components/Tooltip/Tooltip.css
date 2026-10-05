@@ -1,0 +1,29 @@
+.qa-tooltip {
+  position: relative;
+  display: inline-flex;
+}
+
+.qa-tooltip__bubble {
+  position: absolute;
+  left: 50%;
+  z-index: var(--qa-z-index-tooltip);
+  width: max-content;
+  max-width: 240px;
+  padding: var(--qa-space-2) var(--qa-space-3);
+  transform: translateX(-50%);
+  border-radius: var(--qa-radius-sm);
+  background: var(--qa-color-surface-inverse);
+  color: var(--qa-color-text-inverse);
+  font-size: var(--qa-font-size-xs);
+  font-weight: var(--qa-font-weight-semibold);
+  line-height: var(--qa-line-height-normal);
+  pointer-events: none;
+}
+
+.qa-tooltip__bubble--top {
+  bottom: calc(100% + var(--qa-space-2));
+}
+
+.qa-tooltip__bubble--bottom {
+  top: calc(100% + var(--qa-space-2));
+}

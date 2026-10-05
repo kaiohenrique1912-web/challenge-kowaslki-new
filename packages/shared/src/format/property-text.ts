@@ -26,6 +26,33 @@ export function propertyTitle(p: {
   return `${base} com ${pluralize(p.bedrooms, "quarto", "quartos")}`;
 }
 
+/**
+ * Linha de atributos do card: "120 m² · 3 quartos · 2 vagas". Vagas somem quando 0;
+ * studio sem quarto mostra "Studio" no lugar dos quartos (business-rules §6.2).
+ */
+export function propertyAttributesLine(p: {
+  type: PropertyType;
+  area: number;
+  bedrooms: number;
+  parkingSpaces: number;
+}): string {
+  const parts = [formatArea(p.area)];
+  if (p.bedrooms > 0) parts.push(pluralize(p.bedrooms, "quarto", "quartos"));
+  else if (p.type === "STUDIO") parts.push("Studio");
+  if (p.parkingSpaces > 0) parts.push(pluralize(p.parkingSpaces, "vaga", "vagas"));
+  return parts.join(" · ");
+}
+
+/** "Condo. + IPTU R$ 2.350" ou "Sem condomínio e IPTU" quando a soma é 0. */
+export function monthlyCostLabel(monthlyCost: number): string {
+  return monthlyCost > 0 ? `Condo. + IPTU ${formatBRL(monthlyCost)}` : "Sem condomínio e IPTU";
+}
+
+/** Endereço público — nunca inclui número nem complemento: "Rua João Moura, Pinheiros · São Paulo". */
+export function publicAddress(street: string, neighborhoodName: string): string {
+  return `${street}, ${neighborhoodName} · São Paulo`;
+}
+
 /** "Apartamento à venda com 120m², 3 quartos e 2 vagas" (detalhe). */
 export function propertyHeadline(p: {
   type: PropertyType;

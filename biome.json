@@ -6,6 +6,7 @@
       "!**/dist",
       "!**/storybook-static",
       "!**/generated",
+      "!**/tokens/tokens.css",
       "!docs"
     ]
   },
