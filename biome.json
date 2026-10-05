@@ -1,6 +1,13 @@
 {
   "files": {
-    "includes": ["**", "!**/node_modules", "!**/dist", "!**/storybook-static", "!docs"]
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/storybook-static",
+      "!**/generated",
+      "!docs"
+    ]
   },
   "formatter": {
     "indentStyle": "space",

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { createApp } from "../../app.ts";
+import { createTestApp } from "../../testing/test-app.ts";
 
 describe("GET /static/photos/:file", () => {
   test("returns a placeholder SVG", async () => {
-    const response = await createApp().handle(
+    const response = await createTestApp().handle(
       new Request("http://localhost/static/photos/living-3.svg"),
     );
     expect(response.status).toBe(200);
@@ -12,7 +12,7 @@ describe("GET /static/photos/:file", () => {
   });
 
   test("404 for unknown files", async () => {
-    const response = await createApp().handle(
+    const response = await createTestApp().handle(
       new Request("http://localhost/static/photos/garage-9.svg"),
     );
     expect(response.status).toBe(404);

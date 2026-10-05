@@ -1,0 +1,227 @@
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  CONDO_HOUSE
+  STUDIO
+}
+
+enum PropertyStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+}
+
+enum SortOrder {
+  NEAREST
+  RELEVANCE
+  NEWEST
+  PRICE_ASC
+  PRICE_DESC
+  RENTAL_YIELD_DESC
+}
+
+enum PublishedWithin {
+  TODAY
+  LAST_7_DAYS
+  LAST_15_DAYS
+  LAST_30_DAYS
+  LAST_2_MONTHS
+  LAST_6_MONTHS
+}
+
+enum PropertyBadge {
+  EXCLUSIVE
+  PRICE_DROP
+  GREAT_PRICE
+  NEW_LISTING
+  RENTED
+}
+
+enum AmenityCategory {
+  CONDOMINIUM
+  FEATURES
+  FURNITURE
+  WELLBEING
+  APPLIANCES
+  ROOMS
+  ACCESSIBILITY
+}
+
+"Códigos estáveis das comodidades (docs/business-rules.md §3)."
+enum AmenityCode {
+  GYM
+  GREEN_AREA
+  TOY_LIBRARY
+  CONDO_BARBECUE
+  ELEVATOR
+  LAUNDRY
+  POOL
+  PLAYGROUND
+  CONCIERGE_24H
+  SPORTS_COURT
+  PARTY_ROOM
+  GAME_ROOM
+  SAUNA
+  PENTHOUSE
+  AIR_CONDITIONING
+  BATHTUB
+  SHOWER_BOX
+  PRIVATE_BARBECUE
+  GAS_SHOWER
+  CLOSET
+  PRIVATE_GARDEN
+  NEW_OR_RENOVATED
+  PRIVATE_POOL
+  SINGLE_HOUSE_ON_LOT
+  LAUNDRY_TANK
+  TV
+  KITCHEN_UTENSILS
+  CEILING_FAN
+  KITCHEN_CABINETS
+  BEDROOM_WARDROBES
+  BATHROOM_CABINETS
+  DOUBLE_BED
+  SINGLE_BED
+  DINING_SET
+  SOFA
+  LARGE_WINDOWS
+  QUIET_STREET
+  MORNING_SUN
+  AFTERNOON_SUN
+  OPEN_VIEW
+  STOVE
+  COOKTOP
+  FRIDGE
+  WASHING_MACHINE
+  MICROWAVE
+  SERVICE_AREA
+  AMERICAN_KITCHEN
+  HOME_OFFICE
+  GARDEN
+  BACKYARD
+  BALCONY
+  ADAPTED_BATHROOM
+  HANDRAIL
+  TACTILE_FLOOR
+  WIDE_DOORS
+  ACCESS_RAMPS
+  ACCESSIBLE_PARKING
+}
+
+type Amenity {
+  code: AmenityCode!
+  label: String!
+  category: AmenityCategory!
+}
+
+type Photo {
+  url: String!
+  position: Int!
+}
+
+"Filtros da busca. Todos opcionais e combinados com E (docs/business-rules.md §4.1)."
+input PropertySearchFilters {
+  "Imóvel em qualquer um destes bairros."
+  neighborhoodSlugs: [String!]
+  "Área visível do mapa."
+  bbox: BoundingBox
+  types: [PropertyType!]
+  "Valor de venda (R$)."
+  price: IntRange
+  "Condomínio + IPTU mensal (R$)."
+  monthlyCost: IntRange
+  "Área útil (m²)."
+  area: IntRange
+  minBedrooms: Int
+  minBathrooms: Int
+  minSuites: Int
+  minParkingSpaces: Int
+  publishedWithin: PublishedWithin
+  furnished: Boolean
+  nearSubway: Boolean
+  exclusive: Boolean
+  "true = só imóveis já alugados (\"Compre já alugado\")."
+  rented: Boolean
+  "O imóvel precisa ter TODAS as comodidades."
+  amenities: [AmenityCode!]
+  "Só favoritos do usuário do header x-user-id."
+  onlyFavorites: Boolean
+}
+
+type Property {
+  "Também é o código público (\"Imóvel 1000123\")."
+  id: ID!
+  status: PropertyStatus!
+  type: PropertyType!
+  "Título do card, ex.: \"Apartamento à venda em Pinheiros com 3 quartos\"."
+  title: String!
+  "Título do detalhe, ex.: \"Apartamento à venda com 120m², 3 quartos e 2 vagas\"."
+  headline: String!
+  "Só a rua: número e complemento nunca são expostos."
+  street: String!
+  neighborhood: Neighborhood!
+  location: LatLng!
+  salePrice: Int!
+  previousPrice: Int
+  condoFee: Int!
+  iptu: Int!
+  monthlyCost: Int!
+  pricePerM2: Int!
+  area: Int!
+  bedrooms: Int!
+  suites: Int!
+  bathrooms: Int!
+  parkingSpaces: Int!
+  floor: Int
+  isFurnished: Boolean!
+  acceptsPets: Boolean!
+  nearSubway: Boolean!
+  isExclusive: Boolean!
+  isRented: Boolean!
+  "Aluguel atual (só quando isRented)."
+  monthlyRent: Int
+  estimatedRent: Int!
+  "Fração mensal (0.0045 = 0,45% a.m.)."
+  rentalYield: Float!
+  description: String!
+  amenities: [Amenity!]!
+  "Comodidades aplicáveis ao tipo que o imóvel não tem (\"Itens indisponíveis\")."
+  unavailableAmenities: [Amenity!]!
+  photos(limit: Int): [Photo!]!
+  photoCount: Int!
+  "Em ordem de prioridade; o card mostra no máximo 2."
+  badges: [PropertyBadge!]!
+  isFavorite: Boolean!
+  publishedAt: DateTime
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+type PropertyConnection {
+  nodes: [Property!]!
+  "Total com todos os filtros (inclusive bbox); calculado só quando pedido."
+  totalCount: Int!
+  pageInfo: PageInfo!
+}
+
+extend type Query {
+  "Busca paginada por cursor (\"Ver mais\" passa pageInfo.endCursor em after)."
+  searchProperties(
+    filters: PropertySearchFilters
+    sort: SortOrder = RELEVANCE
+    "Só para NEAREST; se ausente, usa o centro do bairro filtrado, o da bbox ou a Praça da Sé."
+    origin: LatLngInput
+    "0 a 48; 0 = só contagem."
+    first: Int = 24
+    after: String
+  ): PropertyConnection!
+
+  "Imóvel ativo pelo id/código. null se não existir ou não estiver ativo."
+  property(id: ID!): Property
+
+  "Catálogo de comodidades na ordem do painel de filtros."
+  amenities: [Amenity!]!
+}

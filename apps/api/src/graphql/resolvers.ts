@@ -1,17 +1,35 @@
+import { GraphQLScalarType } from "graphql";
 import { healthResolvers } from "../modules/health/health.resolvers.ts";
-
-type ResolverMap = Record<string, Record<string, unknown>>;
-
-/** Junta os resolvers de vários módulos, mesclando tipos repetidos (ex.: `Query`). */
-function mergeResolvers(...maps: ResolverMap[]): ResolverMap {
-  const merged: ResolverMap = {};
-  for (const map of maps) {
-    for (const [typeName, fields] of Object.entries(map)) {
-      merged[typeName] = { ...merged[typeName], ...fields };
-    }
-  }
-  return merged;
-}
+import { locationsResolvers } from "../modules/locations/locations.resolvers.ts";
+import { neighborhoodsResolvers } from "../modules/neighborhoods/neighborhoods.resolvers.ts";
+import { propertiesResolvers } from "../modules/properties/properties.resolvers.ts";
+import type { Resolvers } from "./generated/resolvers-types.ts";
+import { DateTimeScalar } from "./scalars.ts";
 
 /** Resolvers de todos os módulos. Ao criar um módulo novo, adicione-o aqui. */
-export const resolvers = mergeResolvers(healthResolvers);
+const modules: Resolvers[] = [
+  { DateTime: DateTimeScalar },
+  healthResolvers,
+  propertiesResolvers,
+  neighborhoodsResolvers,
+  locationsResolvers,
+];
+
+/** Junta os resolvers dos módulos, mesclando tipos repetidos (ex.: `Query`). */
+function mergeResolvers(maps: Resolvers[]): Resolvers {
+  const merged: Record<string, unknown> = {};
+  for (const map of maps) {
+    for (const [typeName, value] of Object.entries(map)) {
+      const current = merged[typeName];
+      const isFieldMap =
+        typeof value === "object" && value !== null && !(value instanceof GraphQLScalarType);
+      merged[typeName] =
+        isFieldMap && typeof current === "object" && current !== null
+          ? { ...current, ...value }
+          : value;
+    }
+  }
+  return merged as Resolvers;
+}
+
+export const resolvers = mergeResolvers(modules);

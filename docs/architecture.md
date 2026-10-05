@@ -47,24 +47,32 @@ Itens marcados ✅ já existem; o resto é planejado.
 apps/
   api/
     src/
-      index.ts                  # bootstrap Elysia + plugin graphql-yoga
-      context.ts                # monta o contexto por request (db, userId, loaders)
-      graphql/
+      index.ts                  # ✅ abre o banco, migra, sobe Elysia na porta 4000
+      app.ts                    # ✅ createApp({ db, now }) — schema Yoga + rotas (usado nos testes)
+      context.ts                # ✅ GraphQLContext por request (db, userId, now, loaders)
+      graphql/                  # ✅ Etapa 3
         schema/*.graphql        # SDL — fonte da verdade do contrato
-        scalars.ts
-        errors.ts               # helpers de erro (INVALID_FILTER, NOT_FOUND…)
+        generated/resolvers-types.ts  # gerado por `bun run codegen` (não editar)
+        resolvers.ts            # registra os resolvers de cada módulo
+        loaders.ts              # DataLoaders por request (bairro, fotos, comodidades, favoritos)
+        scalars.ts              # DateTime
+        errors.ts               # badUserInput(), parseOrThrow(schemaZod, args)
       modules/
-        properties/
-          properties.resolvers.ts
-          properties.service.ts
-          properties.repository.ts
+        properties/             # ✅ Etapa 3
+          properties.resolvers.ts   # finos: delegam ao serviço, montam campos derivados
+          properties.service.ts     # regras: validação, origem de NEAREST, cursor, clusters
+          properties.repository.ts  # só SQL: página keyset, COUNT, agregação do mapa, lotes
           property-where.ts     # ÚNICO lugar que traduz filtros → SQL
-          map-clusters.ts
+          sort.ts               # ordenações + encode/decode do cursor
+          property-record.ts    # PropertyRecord (parent dos resolvers) + mapeamento da linha
           *.test.ts
-        neighborhoods/ …
-        favorites/ …
-        locations/ …            # autocomplete
+        neighborhoods/          # ✅ record, repository (inclui busca por nome), resolvers
+        locations/              # ✅ autocomplete: service + repository (ruas)
+        health/                 # ✅
+        favorites/ …            # Etapa 6 (mutations)
         photos/                 # ✅ GET /static/photos/{room}-{variant}.svg (placeholders)
+      testing/test-app.ts       # ✅ banco em memória com 5.000 imóveis + gql() para testes
+      bench/search-bench.ts     # ✅ `bun run bench` — tempos com o banco de 60k
       db/                       # ✅ Etapa 2
         client.ts               # openDatabase() — WAL, foreign_keys=ON; DB_PATH sobrescreve
         migrate.ts              # runMigrations() + CLI `bun run db:migrate`
@@ -92,9 +100,14 @@ packages/
     domain/                     # ✅ property.ts (enums/labels), amenities.ts (catálogo +
                                 #    aplicabilidade), limits.ts (faixas, limites de SP),
                                 #    derived.ts (aluguel estimado, retorno, badges, relevância)
-    validation/                 # ✅ property.ts (propertyInputSchema); filtros na Etapa 3
-    format/                     # ✅ text.ts (normalizeText, slugify, formatCep);
-                                #    formatBRL, plurais, títulos, datas relativas depois
+                                #    search.ts (ordenações, publicação, página, limites),
+                                #    map-grid.ts (cellSizeForZoom, cellOf, clusterId)
+    validation/                 # ✅ property.ts (propertyInputSchema), search.ts
+                                #    (searchFiltersSchema, searchArgsSchema, mapClustersArgsSchema,
+                                #    locationSuggestionsArgsSchema)
+    format/                     # ✅ text.ts (normalizeText, slugify, formatCep),
+                                #    property-text.ts (formatBRL, formatArea, pluralize,
+                                #    propertyTitle, propertyHeadline); datas relativas depois
     search/                     # serialização filtros ⇄ URL, defaults
   ui/src/
     tokens/                     # tokens.css + tokens.ts
@@ -117,10 +130,11 @@ docs/
    O painel "Mais filtros" usa `searchProperties(first: 0) { totalCount }` com os filtros
    em rascunho para o botão "Ver N imóveis" (debounce 300 ms).
 4. **Resolver** recebe os args já tipados pelo schema GraphQL e repassa ao serviço.
-5. **Service** valida com o schema zod de `shared` (`searchFiltersSchema`) — faixas, min≤max,
-   bbox — e converte falhas em `GraphQLError` `BAD_USER_INPUT`/`INVALID_FILTER`. Resolve
-   `onlyFavorites` com o `userId` do contexto. Aplica defaults (`sort = RELEVANCE`,
-   `first = 24`).
+5. **Service** valida com o schema zod de `shared` (`searchArgsSchema`) — faixas, min≤max,
+   bbox, tamanho de página — via `parseOrThrow`, que converte falhas em `BAD_USER_INPUT` com
+   `extensions.field`. Confere no banco o que o zod não sabe (bairros existem; `onlyFavorites`
+   exige `x-user-id`). Aplica defaults (`sort = RELEVANCE`, `first = 24`) e define a origem de
+   `NEAREST`.
 6. **Repository** monta SQL com `buildPropertyWhere(filters)` → `{ sql, params }` (o mesmo
    WHERE é usado pela lista, pela contagem e pelos clusters) e executa statements preparados
    e cacheados do `bun:sqlite`.
@@ -128,157 +142,58 @@ docs/
    por request (padrão DataLoader) — nunca N+1.
 8. Resposta volta como `PropertyConnection`; o web renderiza `PropertyCard`s do `ui`.
 
-## 4. Schema GraphQL (planejado)
+## 4. Schema GraphQL
 
-Schema-first: o SDL em `apps/api/src/graphql/schema/` é a fonte da verdade; tipos de
-resolvers (api) e de operações (web) são gerados por **GraphQL Code Generator**
-(`bun run codegen`). Enums GraphQL espelham os de `packages/shared` (um teste garante que
-batem).
+**Schema-first:** o SDL em `apps/api/src/graphql/schema/*.graphql` é a fonte da verdade (não
+copie o schema para os docs — leia os arquivos). Após alterá-lo, rode `bun run codegen`, que
+gera `apps/api/src/graphql/generated/resolvers-types.ts` (tipos `Resolvers`, args e enums como
+uniões de string, compatíveis com os tipos de `shared`). O arquivo gerado é commitado e nunca
+editado à mão. O web ganha codegen próprio na Etapa 5.
+
+| Arquivo | Conteúdo |
+|---|---|
+| `common.graphql` | `scalar DateTime` (ISO-8601; internamente epoch ms), `LatLng`, `Bounds`, inputs `IntRange`, `BoundingBox`, `LatLngInput` |
+| `health.graphql` | `type Query { health }` — a raiz `Query`; os outros arquivos usam `extend type Query` |
+| `property.graphql` | enums (`PropertyType`, `SortOrder`, `PublishedWithin`, `PropertyBadge`, `AmenityCode`…), `PropertySearchFilters`, `Property`, `PropertyConnection`; queries `searchProperties`, `property(id)`, `amenities` |
+| `map.graphql` | `MapCluster`, `MapClusterResult { clusters totalCount zoom }`; query `propertyMapClusters` |
+| `neighborhood.graphql` | `Zone`, `Neighborhood`; query `neighborhoods` |
+| `location.graphql` | `LocationSuggestion` (NEIGHBORHOOD / STREET / PROPERTY_CODE); query `locationSuggestions` |
+
+Operações disponíveis hoje:
 
 ```graphql
-scalar DateTime
-
-enum PropertyType { APARTMENT HOUSE CONDO_HOUSE STUDIO }
-enum PropertyStatus { DRAFT ACTIVE INACTIVE }
-enum SortOrder { NEAREST RELEVANCE NEWEST PRICE_ASC PRICE_DESC RENTAL_YIELD_DESC }
-enum PublishedWithin { TODAY LAST_7_DAYS LAST_15_DAYS LAST_30_DAYS LAST_2_MONTHS LAST_6_MONTHS }
-enum PropertyBadge { EXCLUSIVE PRICE_DROP GREAT_PRICE NEW_LISTING RENTED }
-enum AmenityCategory { CONDOMINIUM FEATURES FURNITURE WELLBEING APPLIANCES ROOMS ACCESSIBILITY }
-enum AmenityCode { GYM GREEN_AREA TOY_LIBRARY # … lista completa em business-rules.md §3
-}
-
-input IntRange { min: Int, max: Int }
-input BoundingBox { north: Float!, south: Float!, east: Float!, west: Float! }
-input LatLngInput { lat: Float!, lng: Float! }
-
-input PropertySearchFilters {
-  neighborhoodSlugs: [String!]
-  bbox: BoundingBox
-  types: [PropertyType!]
-  price: IntRange
-  monthlyCost: IntRange
-  area: IntRange
-  minBedrooms: Int
-  minBathrooms: Int
-  minSuites: Int
-  minParkingSpaces: Int
-  publishedWithin: PublishedWithin
-  furnished: Boolean
-  nearSubway: Boolean
-  exclusive: Boolean
-  rented: Boolean
-  amenities: [AmenityCode!]
-  onlyFavorites: Boolean
-}
-
-type Neighborhood {
-  id: ID!
-  slug: String!
-  name: String!
-  zone: String!
-  center: LatLng!
-  bounds: Bounds!
-  medianPricePerM2: Int!
-  medianRentPerM2: Int!
-}
-
-type LatLng { lat: Float!, lng: Float! }
-type Bounds { north: Float!, south: Float!, east: Float!, west: Float! }
-
-type Amenity { code: AmenityCode!, label: String!, category: AmenityCategory! }
-
-type Photo { url: String!, position: Int! }
-
-type Property {
-  id: ID!                      # = código público
-  status: PropertyStatus!
-  type: PropertyType!
-  title: String!               # derivado (business-rules §6.3)
-  headline: String!
-  street: String!              # número/complemento nunca expostos
-  neighborhood: Neighborhood!
-  location: LatLng!
-  salePrice: Int!
-  previousPrice: Int
-  condoFee: Int!
-  iptu: Int!
-  monthlyCost: Int!
-  pricePerM2: Int!
-  area: Int!
-  bedrooms: Int!
-  suites: Int!
-  bathrooms: Int!
-  parkingSpaces: Int!
-  floor: Int
-  isFurnished: Boolean!
-  acceptsPets: Boolean!
-  nearSubway: Boolean!
-  isExclusive: Boolean!
-  isRented: Boolean!
-  monthlyRent: Int                    # só quando isRented
-  estimatedRent: Int!
-  rentalYield: Float!                 # fração mensal (0.0045 = 0,45% a.m.)
-  description: String!
-  amenities: [Amenity!]!
-  unavailableAmenities: [Amenity!]!   # aplicáveis ao tipo e ausentes
-  photos(limit: Int): [Photo!]!
-  photoCount: Int!
-  badges: [PropertyBadge!]!
-  isFavorite: Boolean!                # false sem userId
-  publishedAt: DateTime
-}
-
-type PageInfo { endCursor: String, hasNextPage: Boolean! }
-type PropertyConnection { nodes: [Property!]!, totalCount: Int!, pageInfo: PageInfo! }
-
-type MapCluster {
-  id: ID!            # "z{zoom}:{row}:{col}" — estável entre pans
-  center: LatLng!    # média das posições
-  count: Int!
-  bounds: Bounds!    # extensão real dos pontos (zoom ao clicar)
-  propertyId: ID     # preenchido quando count = 1
-}
-type MapClusterResult { clusters: [MapCluster!]!, totalCount: Int! }
-
-enum LocationSuggestionKind { NEIGHBORHOOD STREET PROPERTY_CODE }
-type LocationSuggestion {
-  kind: LocationSuggestionKind!
-  label: String!         # "Pinheiros, São Paulo – SP"
-  neighborhoodSlug: String
-  propertyId: ID
-  center: LatLng!
-  bounds: Bounds
-}
-
-type Query {
-  searchProperties(
-    filters: PropertySearchFilters
-    sort: SortOrder = RELEVANCE
-    origin: LatLngInput      # só para NEAREST; se ausente o serviço deriva (business-rules §4.2)
-    first: Int = 24          # 0…48 (0 = só contagem)
-    after: String
-  ): PropertyConnection!
-  propertyMapClusters(filters: PropertySearchFilters, bbox: BoundingBox!, zoom: Int!): MapClusterResult!
-  property(id: ID!): Property                 # null se não existir; INACTIVE/DRAFT também retornam null para o público
-  locationSuggestions(query: String!, limit: Int = 8): [LocationSuggestion!]!   # query ≥ 2 caracteres
-  neighborhoods: [Neighborhood!]!
-  amenities: [Amenity!]!
-}
-
-type Mutation {
-  addFavorite(propertyId: ID!): Property!
-  removeFavorite(propertyId: ID!): Property!
-}
+searchProperties(filters, sort = RELEVANCE, origin, first = 24, after): PropertyConnection!
+propertyMapClusters(filters, bbox!, zoom!): MapClusterResult!
+property(id!): Property            # null se não existir ou não estiver ACTIVE
+locationSuggestions(query!, limit = 8): [LocationSuggestion!]!
+neighborhoods: [Neighborhood!]!
+amenities: [Amenity!]!
+health: Health!
 ```
+
+**(planejado, Etapa 6)** `addFavorite(propertyId)` / `removeFavorite(propertyId)`. O filtro
+`onlyFavorites` e o campo `Property.isFavorite` já funcionam (lendo a tabela `favorites`).
+
+Mapeamento resolver → "parent" (configurado em `apps/api/codegen.ts`): `Property` recebe
+`PropertyRecord`, `Neighborhood` recebe `NeighborhoodRecord`, `PropertyConnection` recebe
+`PropertyConnectionModel` (com `countTotal()` — o `COUNT(*)` só roda se `totalCount` for pedido).
+Campos que não estão no record (`title`, `headline`, `badges`, `amenities`, `photos`,
+`neighborhood`, `isFavorite`…) têm resolver próprio em `properties.resolvers.ts`.
 
 Convenções do schema:
 - Nomes em inglês, camelCase; enums UPPER_SNAKE; labels pt-BR vêm de `shared`, não do schema
-  (exceto `Amenity.label` e `LocationSuggestion.label`, por conveniência).
+  (exceto `Amenity.label` e `LocationSuggestion.label`, por conveniência). Todo campo novo tem
+  descrição (`"..."`) no SDL.
 - Mutations futuras seguem `verbNoun(input: VerbNounInput!): VerbNounPayload!` (ex.:
-  `createProperty(input: CreatePropertyInput!)`). As duas de favoritos são exceção histórica.
-- Erros: `GraphQLError` com `extensions.code` ∈ `BAD_USER_INPUT` (+ `extensions.field`),
-  `NOT_FOUND`, `UNAUTHENTICATED`, `INTERNAL`. Mensagens em pt-BR.
+  `createProperty(input: CreatePropertyInput!)`). As de favoritos serão exceção histórica.
+- **Erros** (`apps/api/src/graphql/errors.ts`): `GraphQLError` com mensagem em pt-BR e
+  `extensions.code` ∈ `BAD_USER_INPUT` | `NOT_FOUND` | `INTERNAL`. Erros de entrada trazem
+  `extensions.field` (caminho do argumento, ex.: `"filters.price"`) e `extensions.issues`
+  (lista `{ field, message }`). Validação de entrada sempre via `parseOrThrow(schemaZod, args)`.
 - Identidade: header `x-user-id` (UUID anônimo do navegador) lido em `context.ts`.
+- Contexto de cada request (`GraphQLContext`): `db`, `userId`, `now` (relógio fixo durante a
+  request; os testes injetam um instante fixo) e `loaders` (DataLoader: bairro, fotos,
+  comodidades e favoritos por id — nunca faça uma query por imóvel num resolver).
 
 ## 5. Modelo de dados (SQLite)
 
@@ -393,8 +308,10 @@ antes de adicionar índices. Meta: **p95 < 50 ms** por query no servidor local.
 - Mínimos: `p.bedrooms >= ?` etc.
 - `types`: `p.type IN (?, …)`; `neighborhoodSlugs`: `p.neighborhood_id IN (SELECT id FROM neighborhoods WHERE slug IN (…))`.
 - `bbox`: `p.lat BETWEEN ? AND ? AND p.lng BETWEEN ? AND ?`.
-- `amenities` (E):
-  `p.id IN (SELECT property_id FROM property_amenities WHERE amenity_code IN (…) GROUP BY property_id HAVING COUNT(*) = ?)`.
+- `amenities` (E): interseção dos ids de cada comodidade —
+  `p.id IN (SELECT property_id FROM property_amenities WHERE amenity_code = ? INTERSECT SELECT … = ?)`.
+  Medido ~2,5× mais rápido que `GROUP BY … HAVING COUNT(*) = n` (e `EXISTS` por comodidade é
+  rápido na lista, mas lento no `COUNT`).
 - `onlyFavorites`: `p.id IN (SELECT property_id FROM favorites WHERE user_id = ?)`.
 - `publishedWithin`: `p.published_at >= ?` (instante calculado em `shared`).
 
@@ -435,6 +352,35 @@ bathroom, facade, balcony; `variant` 1–8) é desenhada pela api em
 `modules/photos/placeholder-photo.ts` — sem arquivos e sem serviços externos. O Vite repassa
 `/static` para a api. Um cadastro real gravaria URLs de uploads no mesmo campo.
 
+### 5.4 Desempenho
+
+`openDatabase()` configura `cache_size = 64 MB` e `mmap_size = 512 MB`. Com o cache padrão do
+SQLite (2 MB, menor que a tabela de imóveis) as buscas por bairro e por área do mapa levavam
+~270–330 ms; com o cache maior, ~30–40 ms.
+
+`bun run bench` (`apps/api/src/bench/search-bench.ts`) mede a API completa (HTTP → GraphQL →
+serviço → SQL → loaders) com o banco do seed. Referência (60.000 imóveis, notebook Windows,
+30 execuções, resposta com 24 cards + `totalCount`):
+
+| Cenário | p50 | p95 |
+|---|---|---|
+| Lista padrão (cidade toda, relevância) | 5 ms | 7 ms |
+| Bairro + 3+ quartos, menor valor | 30 ms | 32 ms |
+| Área do mapa + tipo + faixa de preço | 41 ms | 50 ms |
+| Comodidades (3) + 2+ vagas | 26 ms | 45 ms |
+| Mais próximos (cidade toda) | 34 ms | 52 ms |
+| Maior retorno + publicados em 30 dias | 3 ms | 5 ms |
+| Página 11 via cursor | 5 ms | 5 ms |
+| Só contagem com 5 filtros ("Ver N imóveis") | 15 ms | 16 ms |
+| Mapa: cidade toda, zoom 11 (58 mil pontos agregados) | 49 ms | 69 ms |
+| Mapa: zona oeste, zoom 15, com filtros | 38 ms | 50 ms |
+| Detalhe do imóvel | 1 ms | 1 ms |
+| Autocomplete de bairro / de rua | 0,3 ms / 9 ms | 0,5 ms / 11 ms |
+
+O caso mais pesado é o mapa da cidade inteira sem filtros (agrega todos os imóveis ativos).
+Se um dia precisar de mais velocidade: tabela R*Tree para a área do mapa (o SQLite do Bun tem
+`ENABLE_RTREE`) ou clusters pré-calculados por zoom.
+
 ## 6. Paginação
 
 **Keyset (cursor)**, não offset: estável quando dados mudam e com custo constante em
@@ -442,8 +388,9 @@ páginas profundas.
 
 - Ordem efetiva = coluna da ordenação + `id` no mesmo sentido (`relevance_score DESC, id DESC`;
   `sale_price ASC, id ASC`…).
-- `endCursor` = base64url de `JSON.stringify([valorDaColuna, id, sort])`. Um cursor gerado
-  para outra ordenação é rejeitado (`BAD_USER_INPUT`, field `after`).
+- `endCursor` = base64url de `JSON.stringify([sort, valorDaOrdenação, id, origem | null])`
+  (`sort.ts`). Um cursor de outra ordenação ou malformado é rejeitado (`BAD_USER_INPUT`,
+  field `after`). Em `NEAREST` a origem viaja no cursor para a página seguinte usar a mesma.
 - Próxima página: `WHERE … AND (col, id) < (?, ?)` (desc) ou `>` (asc) — row values do
   SQLite — `LIMIT first + 1`; o item extra define `hasNextPage`.
 - `NEAREST`: a "coluna" é a expressão de distância
@@ -475,7 +422,13 @@ milhares de pontos:
    GROUP BY row, col
    ```
 4. `count = 1` → `propertyId = any_id`.
-5. Resultado limitado a 1.000 células; se passar, o serviço repete com `zoom − 1`.
+5. Resultado limitado a 1.000 células (`MAX_MAP_CELLS`). Se passar, o serviço junta as células
+   em blocos 2×2 em memória (`mergeCellsToParentZoom`) — a célula do zoom z−1 tem o dobro do
+   tamanho e a mesma origem, então linha/coluna viram `floor(n / 2)` e o resultado é idêntico
+   a agregar direto (há teste). `MapClusterResult.zoom` informa o zoom efetivamente usado.
+6. Os clusters usam exatamente os mesmos filtros da lista: a soma dos `count` é igual ao
+   `totalCount` de `searchProperties` com a mesma `bbox` (há teste). Um `filters.bbox` é ignorado
+   — vale o argumento `bbox`.
 
 ### 7.2 Comportamento no cliente
 - Marcador = bolha branca circular com o número (`MapCluster` do `ui`), como no original.
@@ -593,6 +546,8 @@ cobrindo seus estados. Detalhes em `docs/design-system.md` (criado na Etapa 4).
 | Schema-first + codegen | O SDL é contrato único e tipado para api e web; agentes leem um só lugar. |
 | zod em `shared` | A mesma validação roda no formulário (web) e no serviço (api). |
 | Usuário anônimo por header | Favoritos sem implementar autenticação, fora do escopo. |
-| `graphql@16` fixado na api | O plugin `@elysiajs/graphql-yoga` traz o Yoga 3, que só aceita `graphql` 15/16. Ter duas versões de `graphql` instaladas quebra o schema ("from another module"). Não instale `graphql-yoga` nem `graphql@17` diretamente. |
+| `graphql@16` e `graphql-yoga@3.9.1` fixados na api | O plugin `@elysiajs/graphql-yoga` traz o Yoga 3.9.1, que só aceita `graphql` 15/16. A api depende de `graphql-yoga` **na mesma versão exata** só para montar o schema tipado (`createSchema<GraphQLContext>`) e entregá-lo ao plugin. Duas versões de `graphql`/Yoga instaladas quebram o schema ("from another module"): ao atualizar, confira que `bun.lock` tem uma única entrada de cada. |
+| Resolvers tipados por codegen | `typescript-resolvers` gera `Resolvers` a partir do SDL, com mappers para os records. O tipo de `resolvers` do plugin (via graphql-mobius) não aceita esses tipos, por isso o schema é montado fora do plugin. |
+| Cache do SQLite 64 MB + mmap | Medido: buscas por bairro/área do mapa caíram de ~300 ms para ~35 ms (§5.4). |
 | Código-fonte TS exportado direto por `ui`/`shared` | Sem etapa de build entre pacotes; Bun e Vite leem `.ts` direto. |
 | Biome no lugar de ESLint + Prettier | Uma ferramenta só, rápida, sem plugins. |

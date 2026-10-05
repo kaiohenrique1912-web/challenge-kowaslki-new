@@ -1,0 +1,28 @@
+"Agrupamento de imóveis numa célula da grade do mapa."
+type MapCluster {
+  "z{zoom}:{linha}:{coluna} — estável ao arrastar o mapa."
+  id: ID!
+  "Média das posições dos imóveis da célula."
+  center: LatLng!
+  count: Int!
+  "Extensão real dos imóveis (zoom ao clicar)."
+  bounds: Bounds!
+  "Preenchido quando count = 1."
+  propertyId: ID
+}
+
+type MapClusterResult {
+  clusters: [MapCluster!]!
+  totalCount: Int!
+  "Zoom efetivamente usado na agregação (pode ser menor que o pedido se houver células demais)."
+  zoom: Int!
+}
+
+extend type Query {
+  "Clusters dos imóveis da área visível, respeitando os filtros. Não inclua neighborhoodSlugs para ver também imóveis de outros bairros."
+  propertyMapClusters(
+    filters: PropertySearchFilters
+    bbox: BoundingBox!
+    zoom: Int!
+  ): MapClusterResult!
+}

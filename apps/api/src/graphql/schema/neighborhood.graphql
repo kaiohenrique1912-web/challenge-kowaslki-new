@@ -1,0 +1,25 @@
+enum Zone {
+  CENTRO
+  OESTE
+  SUL
+  NORTE
+  LESTE
+}
+
+type Neighborhood {
+  id: ID!
+  slug: String!
+  name: String!
+  zone: Zone!
+  center: LatLng!
+  bounds: Bounds!
+  "Mediana do preço de venda por m² dos imóveis ativos do bairro."
+  medianPricePerM2: Int!
+  "Aluguel mensal de referência por m²."
+  medianRentPerM2: Int!
+}
+
+extend type Query {
+  "Todos os bairros, em ordem alfabética."
+  neighborhoods: [Neighborhood!]!
+}

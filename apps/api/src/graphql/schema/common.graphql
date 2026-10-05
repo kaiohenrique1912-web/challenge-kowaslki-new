@@ -1,0 +1,33 @@
+"Data/hora ISO-8601 (UTC)."
+scalar DateTime
+
+type LatLng {
+  lat: Float!
+  lng: Float!
+}
+
+type Bounds {
+  north: Float!
+  south: Float!
+  east: Float!
+  west: Float!
+}
+
+"Faixa inclusiva; qualquer lado pode ficar em branco."
+input IntRange {
+  min: Int
+  max: Int
+}
+
+"Retângulo da área visível do mapa."
+input BoundingBox {
+  north: Float!
+  south: Float!
+  east: Float!
+  west: Float!
+}
+
+input LatLngInput {
+  lat: Float!
+  lng: Float!
+}

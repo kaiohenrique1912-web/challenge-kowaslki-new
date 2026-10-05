@@ -1,0 +1,20 @@
+enum LocationSuggestionKind {
+  NEIGHBORHOOD
+  STREET
+  PROPERTY_CODE
+}
+
+type LocationSuggestion {
+  kind: LocationSuggestionKind!
+  "Texto exibido, ex.: \"Pinheiros, São Paulo – SP\"."
+  label: String!
+  neighborhoodSlug: String
+  propertyId: ID
+  center: LatLng!
+  bounds: Bounds
+}
+
+extend type Query {
+  "Autocomplete do campo \"Rua, bairro ou código\" (mínimo 2 caracteres)."
+  locationSuggestions(query: String!, limit: Int = 8): [LocationSuggestion!]!
+}

@@ -276,3 +276,115 @@ O banco fica em `apps/api/data/app.db` (cerca de 130 MB) e **não vai para o Git
 | Mediana | O valor do meio de uma lista ordenada; menos afetada por valores extremos do que a média. |
 | SVG | Formato de imagem feito de instruções de desenho (linhas, formas, cores). |
 
+---
+
+# Aprendizado — Etapa 3 (Backend GraphQL de busca)
+
+> Na Etapa 3 o servidor aprendeu a **responder perguntas sobre os imóveis**: buscar com filtros, ordenar, paginar, montar as bolinhas do mapa, abrir um imóvel e sugerir bairros e ruas enquanto você digita. Ainda não há tela de busca (isso é a Etapa 5), mas dá para testar tudo pelo GraphiQL em http://localhost:4000/graphql.
+
+## 1. O que foi feito, passo a passo
+
+### 1.1 O contrato: o schema GraphQL (`apps/api/src/graphql/schema/`)
+O schema é o **cardápio** da API: diz quais perguntas existem e o formato exato de cada resposta. Ficou dividido por assunto (imóveis, mapa, bairros, autocomplete). As perguntas disponíveis:
+
+| Pergunta | Para que serve |
+|---|---|
+| `searchProperties` | A busca: filtros, ordenação, páginas e total de resultados |
+| `propertyMapClusters` | As bolinhas com números do mapa |
+| `property(id)` | Um imóvel completo, para a página de detalhe |
+| `locationSuggestions` | O autocomplete "Rua, bairro ou código" |
+| `neighborhoods` / `amenities` | Listas de bairros e de comodidades |
+
+Exemplo de pergunta (cole no GraphiQL):
+
+```graphql
+{
+  searchProperties(filters: { neighborhoodSlugs: ["pinheiros"], minBedrooms: 3 }, sort: PRICE_ASC, first: 2) {
+    totalCount
+    nodes { title salePrice monthlyCost badges }
+  }
+}
+```
+
+### 1.2 Tipos gerados automaticamente (codegen)
+Um programa chamado **GraphQL Code Generator** lê o schema e **escreve sozinho** os tipos TypeScript das respostas. Se alguém escrever um campo com nome errado no código do servidor, o TypeScript avisa antes de rodar. Sempre que o schema mudar, roda-se `bun run codegen`.
+
+### 1.3 As três camadas
+Cada pergunta passa por três "balcões", cada um com uma única tarefa:
+
+1. **Resolver** (`*.resolvers.ts`): o atendente. Recebe a pergunta e repassa, sem tomar decisão nenhuma.
+2. **Service** (`*.service.ts`): o gerente. Confere se o pedido faz sentido (o mínimo é menor que o máximo? o bairro existe?), aplica os padrões (24 por página, "Mais relevantes") e decide como buscar.
+3. **Repository** (`*.repository.ts`): o estoquista. Só conversa com o banco, em SQL.
+
+**Por quê?** Quando algo der errado, você sabe onde procurar. E quem criar o cadastro de imóveis copia o mesmo formato.
+
+### 1.4 Um único lugar para os filtros (`property-where.ts`)
+Todos os filtros ("3+ quartos", "até R$ 900 mil", "com piscina"…) viram SQL **num arquivo só**. A lista, o total ("566 imóveis") e o mapa usam exatamente o mesmo filtro. Por isso as bolinhas do mapa sempre somam o mesmo número que a lista mostra, e há um teste garantindo isso.
+
+### 1.5 Validação com mensagens claras
+Antes de buscar, o serviço confere a pergunta com as regras do `packages/shared`. Se algo estiver errado, a resposta explica em português e diz qual campo:
+
+```json
+{ "message": "Valor do imóvel: o valor mínimo não pode ser maior que o máximo.",
+  "extensions": { "code": "BAD_USER_INPUT", "field": "filters.price" } }
+```
+
+Assim a tela pode mostrar o erro do lado do campo certo.
+
+### 1.6 Paginação por cursor ("Ver mais")
+Cada página devolve um **cursor**: um "marcador de página" com o último imóvel visto. Para buscar a próxima página, a tela devolve esse marcador. O banco continua de onde parou, sem repetir nem pular imóveis, mesmo que novos anúncios entrem no meio. Há um teste que percorre todas as páginas e confere que cada imóvel aparece exatamente uma vez.
+
+### 1.7 As bolinhas do mapa
+O servidor divide o mapa numa **grade** (como um papel quadriculado) e conta quantos imóveis caem em cada quadradinho. Com o mapa afastado os quadrados são grandes (bolinhas com centenas); ao aproximar ficam pequenos (bolinhas com "1"). Em vez de mandar 58 mil pontos para o navegador, ele manda no máximo 1.000 bolinhas.
+
+### 1.8 Loaders: evitando o "N+1"
+Uma lista de 24 cards precisa do bairro, das fotos e das comodidades de cada imóvel. O jeito ingênuo faria 24 consultas para fotos, mais 24 para bairros, e assim por diante (o problema "N+1"). Os **loaders** juntam esses pedidos e fazem **uma** consulta para as fotos dos 24, uma para os bairros etc.
+
+## 2. Problemas encontrados e como foram resolvidos
+
+- **Buscas lentas (300 ms):** a primeira medição mostrou buscas por bairro e por área do mapa levando ~300 ms. A causa era o **cache** do SQLite, que por padrão guarda só 2 MB do banco na memória, menos que a tabela de imóveis; ele vivia relendo páginas do disco. Com cache de 64 MB e memória mapeada, caiu para ~35 ms (quase 10× mais rápido), com uma linha de configuração.
+- **Filtro de comodidades:** foram testadas três formas de escrever "tem piscina E academia E elevador". A escolhida (`INTERSECT`) foi ~2,5× mais rápida que a original, com o mesmo resultado.
+- **Mapa com zoom alto:** quando a área gerava bolinhas demais, o servidor refazia a conta inteira com um zoom menor. Agora ele só junta as bolinhas vizinhas de 4 em 4, sem voltar ao banco. Um teste confere que o resultado é idêntico.
+- **Autocomplete de rua (62 ms → 11 ms):** em vez de procurar o texto em todos os 60 mil imóveis, primeiro acha os nomes de rua distintos (poucos) e só depois agrupa.
+- **Bairros fora de ordem:** os testes pegaram que "Água Branca" aparecia **depois** de "Vila Sônia", porque o banco ordena letras com acento por último. A correção foi ordenar pelo nome sem acento.
+
+## 3. Resultado: tempos com 60 mil imóveis (`bun run bench`)
+
+| Busca | Tempo típico |
+|---|---|
+| Lista padrão da cidade toda | 5 ms |
+| Bairro + 3 quartos, menor valor | 30 ms |
+| Área do mapa + filtros | 41 ms |
+| Com piscina + academia + elevador | 26 ms |
+| Página 11 ("Ver mais" várias vezes) | 5 ms |
+| Abrir um imóvel | 1 ms |
+| Autocomplete | 0,3 a 9 ms |
+| Mapa da cidade inteira (caso mais pesado) | 49 ms |
+
+Para comparação, um piscar de olhos leva ~100 ms. **101 testes** passando.
+
+## 4. Como testar você mesmo
+
+```
+bun run dev:api            # sobe a API
+# abra http://localhost:4000/graphql e cole a pergunta do item 1.1
+bun run bench              # mede os tempos
+bun test                   # roda os 101 testes
+```
+
+## 5. Glossário da Etapa 3
+
+| Termo | Significado |
+|---|---|
+| Schema | O "cardápio" da API: perguntas possíveis e formato das respostas. |
+| Query | Uma pergunta de leitura feita à API GraphQL. |
+| Codegen | Programa que gera código automaticamente (aqui, os tipos a partir do schema). |
+| Service / Repository | Camada das regras / camada que só fala com o banco. |
+| Cursor | Marcador de página que diz "continue a partir daqui". |
+| Cluster | Bolinha do mapa que agrupa vários imóveis próximos. |
+| N+1 | Erro clássico: fazer uma consulta ao banco para cada item de uma lista. |
+| Loader | Peça que junta vários pedidos parecidos numa única consulta. |
+| Cache | Memória rápida que guarda dados usados com frequência. |
+| p50 / p95 | Tempo da busca "típica" (metade é mais rápida) / das 95% mais rápidas. |
+| Benchmark | Teste que mede velocidade. |
+

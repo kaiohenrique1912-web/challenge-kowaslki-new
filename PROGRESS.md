@@ -12,7 +12,13 @@
   (5 tabelas + 10 índices), regras de domínio e `propertyInputSchema` em `packages/shared`,
   seed determinístico com 102 bairros reais: 60.000 imóveis (58.248 ativos), ~1,1 mi fotos,
   ~850 mil comodidades em ~9–10 s. Fotos placeholder SVG servidas pela api. 39 testes.
-- [ ] **Etapa 3: Backend GraphQL de busca**
+- [x] **Etapa 3: Backend GraphQL de busca** — SDL por módulo + resolvers tipados por codegen;
+  `searchProperties` (todos os filtros, bbox, bairros, 6 ordenações, cursor keyset,
+  `totalCount` sob demanda), `propertyMapClusters` (grade no SQL, ≤ 1.000 células),
+  `property(id)`, `locationSuggestions` (bairro, rua, código), `neighborhoods`, `amenities`.
+  Validação zod de `shared` com erros pt-BR. Camadas resolver → service → repository.
+  101 testes. `bun run bench`: todas as buscas com p50 < 50 ms em 60k imóveis (pior caso:
+  mapa da cidade inteira, p95 69 ms). Mutations de favoritos ficam para a Etapa 6.
 - [ ] **Etapa 4: Design system + Storybook**
 - [ ] **Etapa 5: Frontend da busca (lista + filtros + mapa)**
 - [ ] **Etapa 6: Página de detalhe, favoritos e acabamento**

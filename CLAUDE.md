@@ -49,14 +49,23 @@ Os pacotes do workspace se chamam `@qa/api`, `@qa/web`, `@qa/ui` e `@qa/shared`.
 `bun add <pacote>` **dentro da pasta do workspace** que a usa.
 
 Arquivos-chave hoje:
-- `apps/api/src/app.ts` — monta Elysia + Yoga (`createApp()`, usado também nos testes).
-- `apps/api/src/graphql/schema/*.graphql` — SDL; `graphql/resolvers.ts` registra os módulos.
-- `apps/api/src/modules/<módulo>/` — resolvers/serviço/repositório de cada módulo.
+- `apps/api/src/app.ts` — `createApp({ db, now })`: schema Yoga + rotas (usado nos testes).
+- `apps/api/src/graphql/schema/*.graphql` — SDL (fonte da verdade); `graphql/generated/` —
+  tipos `Resolvers` gerados (`bun run codegen`); `graphql/resolvers.ts` registra os módulos;
+  `graphql/errors.ts` — `parseOrThrow(schemaZod, args)` e `badUserInput()`;
+  `graphql/loaders.ts` — DataLoaders por request.
+- `apps/api/src/modules/<módulo>/` — `*.resolvers.ts` (fino) → `*.service.ts` (regras) →
+  `*.repository.ts` (SQL). Busca: `modules/properties/` (`property-where.ts` = filtros → SQL,
+  `sort.ts` = ordenações + cursor). Também `neighborhoods/`, `locations/` (autocomplete).
+- `apps/api/src/testing/test-app.ts` — `createTestApp()` (banco em memória com 5.000 imóveis,
+  relógio fixo) e `gql(app, query, variables, headers)` para testes de ponta a ponta.
 - `apps/api/src/db/` — `client.ts` (`openDatabase`), `migrate.ts`, `migrations/*.sql`
   (schema SQLite), `seed/` (gerador de 60k imóveis), `maintenance/recompute.ts` (derivados).
 - `apps/api/src/modules/photos/` — fotos placeholder em `/static/photos/{room}-{variant}.svg`.
 - `packages/shared/src/domain/` — enums, comodidades, faixas, derivados (badges, relevância,
-  aluguel estimado); `packages/shared/src/validation/property.ts` — `propertyInputSchema`.
+  aluguel estimado), regras da busca (`search.ts`), grade do mapa (`map-grid.ts`);
+  `packages/shared/src/validation/` — `propertyInputSchema`, `searchArgsSchema` e afins;
+  `packages/shared/src/format/` — `formatBRL`, `propertyTitle`, `propertyHeadline`, `slugify`.
 - `apps/web/src/lib/graphql-client.ts` — cliente GraphQL.
 - `packages/ui/src/tokens/tokens.css` — tokens; `packages/ui/src/components/` — componentes + stories.
 
@@ -78,8 +87,8 @@ Pré-requisito único: **Bun ≥ 1.4** (Node não é necessário). Rode tudo na 
 | Lint / corrigir formatação | `bun run lint` / `bun run format` (Biome) |
 | Storybook | `bun run storybook` → http://localhost:6006 |
 | Build do Storybook | `bun run build-storybook` |
-
-Planejado (ainda não existe): `bun run codegen` (Etapa 3).
+| Gerar tipos GraphQL após mudar o SDL | `bun run codegen` |
+| Medir a busca com o banco de 60k | `bun run bench` (rode o seed antes) |
 
 Primeira vez rodando o projeto: `bun install` → `bun run seed` → `bun run dev`.
 
@@ -97,6 +106,10 @@ padrão `http://localhost:4000`), Storybook `6006`. Banco em `apps/api/data/app.
   redefina um enum, label ou faixa em `api` ou `web` — importe.
 - UI só com componentes de `packages/ui`; faltou um componente? Crie lá, com story.
 - Schema GraphQL (SDL) é a fonte da verdade do contrato; após alterá-lo rode `bun run codegen`.
+  Resolvers são tipados com `Resolvers` gerado; nunca edite `graphql/generated/`.
+- Toda entrada da API é validada no serviço com um schema zod de `shared` via `parseOrThrow`
+  (erro `BAD_USER_INPUT` + `extensions.field`, mensagem em pt-BR).
+- Resolver nunca consulta o banco por item (N+1): use/estenda `graphql/loaders.ts`.
 - Mudança no banco = **nova** migração `apps/api/src/db/migrations/NNNN_nome.sql`; nunca edite
   uma migração já commitada. Gravou/editou imóvel? Recalcule os derivados
   (`recomputeDerivedFields`) e valide a entrada com `propertyInputSchema`.

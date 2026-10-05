@@ -17,7 +17,9 @@
     "build-storybook": "bun run --filter @qa/ui build-storybook",
     "typecheck": "bun run --filter \"*\" typecheck",
     "lint": "biome check .",
-    "format": "biome check --write ."
+    "format": "biome check --write .",
+    "codegen": "bun run --filter @qa/api codegen",
+    "bench": "bun run --filter @qa/api bench"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

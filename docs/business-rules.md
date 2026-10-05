@@ -6,7 +6,9 @@
 > `apps/web` — nunca duplique uma regra. Onde cada parte vive hoje:
 > §2.1 campos/faixas → `domain/property.ts`, `domain/limits.ts`, `validation/property.ts`
 > (`propertyInputSchema`); derivados, badges e relevância → `domain/derived.ts`;
-> §3 comodidades → `domain/amenities.ts`.
+> §3 comodidades → `domain/amenities.ts`; §4 busca (ordenações, publicação, página) →
+> `domain/search.ts` + `validation/search.ts` (`searchFiltersSchema`); §6 textos →
+> `format/property-text.ts` (`formatBRL`, `propertyTitle`, `propertyHeadline`).
 >
 > Origem do levantamento: [feature-analysis.md](feature-analysis.md). Regras marcadas com
 > **(suposição)** ainda aguardam validação; se mudarem, atualize aqui e em `packages/shared`.
@@ -144,9 +146,12 @@ API é literal. **Na busca (comportamento do original, validado):**
 - Os clusters do mapa sempre usam a área visível + os demais filtros (nunca o bairro), por
   isso o zoom out mostra imóveis de outros bairros.
 
-Erros de validação são retornados como erro GraphQL `BAD_USER_INPUT` com
-`extensions.code = "INVALID_FILTER"` e `extensions.field` (ex.: `price`), e mensagem em
-português, ex.: *"O valor mínimo não pode ser maior que o máximo."*
+Erros de validação são retornados como erro GraphQL com `extensions.code = "BAD_USER_INPUT"`,
+`extensions.field` com o caminho do argumento (ex.: `"filters.price"`) e mensagem em
+português, ex.: *"Valor do imóvel: o valor mínimo não pode ser maior que o máximo."*
+Também são erros: bairro inexistente (*"Bairro não encontrado: x."*), `onlyFavorites` sem
+usuário, cursor inválido ou de outra ordenação, mais de 48 resultados por página e autocomplete
+com menos de 2 caracteres.
 
 ### 4.2 Ordenações (`SortOrder`)
 

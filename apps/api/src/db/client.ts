@@ -16,5 +16,9 @@ export function openDatabase(path: string = resolveDbPath()): Database {
   db.exec("PRAGMA journal_mode = WAL;");
   db.exec("PRAGMA foreign_keys = ON;");
   db.exec("PRAGMA synchronous = NORMAL;");
+  // O cache padrão (2 MB) é menor que a tabela de imóveis: buscas por bairro/área do mapa
+  // ficavam ~10× mais lentas relendo páginas do disco. 64 MB de cache + arquivo mapeado em memória.
+  db.exec("PRAGMA cache_size = -65536;");
+  db.exec("PRAGMA mmap_size = 536870912;");
   return db;
 }
