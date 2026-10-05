@@ -86,15 +86,25 @@ apps/
           insert.ts             # bulkInsert + withDeferredIndexes
           index.ts              # seedDatabase() + CLI `bun run seed`
     data/app.db                 # gerado; fora do git
-  web/
+  web/                        # ✅ Etapa 5
+    codegen.ts                  # cliente GraphQL tipado (client preset, documentMode string)
+    e2e/smoke.ts                # `bun run e2e`: fluxos no Chrome/Edge real (puppeteer-core)
     src/
-      main.tsx, router.tsx
-      graphql/                  # documentos .graphql + código gerado (codegen)
+      main.tsx                  # QueryClientProvider + RouterProvider + "@qa/ui/styles.css"
+      router.tsx                # rotas (§8)
+      graphql/operations.ts     # TODAS as operações (graphql`…`); generated/ = codegen
+      lib/                      # graphql-client (erros com field), user-id, query-client, hooks
       features/
-        search/                 # página de busca: hooks, componentes de página
-        property-detail/
-        favorites/
-      lib/                      # cliente GraphQL, userId anônimo, utilidades
+        layout/                 # SiteHeader (AppHeader + router), NotFoundPage
+        search/                 # SearchPage = SearchLayout + SearchFilters + ResultsList + SearchMap
+          use-search-state.ts   # estado da busca = URL (parse/serialize de @qa/shared)
+          queries.ts            # hooks TanStack Query (lista infinita, contagem, mapa, bairros…)
+          LocationSearch.tsx    # autocomplete (Combobox) → bairro / rua / código / cidade
+          SearchFilters.tsx     # FilterBar + Popovers + Drawer(FilterPanel) com rascunho
+          ResultsList.tsx       # ResultsHeader + SortMenu + cards + "Ver mais" + estados
+          SearchMap.tsx         # Leaflet + clusters + sincronia com URL/lista
+          map-utils.ts, search-page.css (só layout, só tokens)
+        property/PropertyPage.tsx  # provisória (detalhe completo na Etapa 6)
 packages/
   shared/src/
     domain/                     # ✅ property.ts (enums/labels), amenities.ts (catálogo +
@@ -108,11 +118,14 @@ packages/
     format/                     # ✅ text.ts (normalizeText, slugify, formatCep),
                                 #    property-text.ts (formatBRL, formatArea, pluralize,
                                 #    propertyTitle, propertyHeadline); datas relativas depois
-    search/                     # serialização filtros ⇄ URL, defaults
+    search/                     # ✅ state.ts (SearchState, PropertyFilters, toApiFilters),
+                                #    url.ts (parseSearchState/serializeSearchState — contrato §8),
+                                #    describe.ts (cabeçalho, chips ativos, rótulos dos filtros),
+                                #    validate.ts (validatePropertyFilters)
   ui/src/
-    tokens/                     # tokens.css + tokens.ts
-    components/                 # Button, Chip, Checkbox, RangeField, Modal…
-    domain/                     # PropertyCard, PriceTag, FilterBar, MapCluster…
+    tokens/                     # ✅ tokens.ts (fonte) → tokens.css (gerado)
+    components/                 # ✅ base: Button, Chip, Input, Combobox, Popover, Drawer…
+    domain/                     # ✅ PropertyCard, FilterBar, FilterPanel, SearchLayout, SortMenu…
     **/*.stories.tsx
 docs/
 ```
@@ -121,14 +134,15 @@ docs/
 
 1. **URL** `/comprar/imovel/pinheiros?tipos=apartamento&quartos=3&ordem=menor-valor`
    (contrato completo no §8).
-2. `useSearchFilters()` (web) faz `parseSearchParams()` de `packages/shared/search` →
-   objeto `SearchFilters` tipado + `sort`. Alterar um filtro chama `serializeSearchParams()`
-   e faz `navigate` (push para mudanças do usuário, replace para movimentos do mapa).
+2. `useSearchState()` (web) faz `parseSearchState()` de `@qa/shared` → `SearchState`
+   (`neighborhoodSlugs`, `mapArea`, `filters: PropertyFilters`, `sort`). Mudar algo chama
+   `setState` → `searchStateToUrl()` + `navigate` (push para ações do usuário; replace para
+   movimentos do mapa). `toApiFilters(state, "list" | "map")` monta os filtros da API.
 3. Duas queries TanStack Query em paralelo, com `queryKey` derivada dos filtros:
-   - `searchProperties` (lista + `totalCount`, infinita via cursor);
-   - `propertyMapClusters` (bbox + zoom atuais do mapa).
-   O painel "Mais filtros" usa `searchProperties(first: 0) { totalCount }` com os filtros
-   em rascunho para o botão "Ver N imóveis" (debounce 300 ms).
+   - `searchProperties` (lista + `totalCount`, `useInfiniteQuery` com o cursor);
+   - `propertyMapClusters` (área visível + 20% de margem, zoom atual, filtros sem bairro).
+   Filtros rápidos e "Mais filtros" editam um **rascunho**; o botão "Ver N imóveis" usa
+   `searchProperties(first: 0) { totalCount }` do rascunho (debounce 300 ms) e só "Ver" aplica.
 4. **Resolver** recebe os args já tipados pelo schema GraphQL e repassa ao serviço.
 5. **Service** valida com o schema zod de `shared` (`searchArgsSchema`) — faixas, min≤max,
    bbox, tamanho de página — via `parseOrThrow`, que converte falhas em `BAD_USER_INPUT` com
@@ -412,7 +426,8 @@ Equivalente ao supercluster, mas feito em SQL para respeitar todos os filtros se
 milhares de pontos:
 
 1. O web envia `bbox` visível (com 20% de margem) + `zoom` + os mesmos filtros da lista.
-2. Tamanho da célula: `cell = 360 / (2^zoom × 4)` graus (≈ 64 px em tiles de 256 px).
+2. Tamanho da célula: `cell = 360 / (2^zoom × CELLS_PER_TILE)` graus, com `CELLS_PER_TILE = 2`
+   (≈ 128 px na tela — com 64 px o mapa ficava poluído, bem mais denso que o original).
    A grade é ancorada em (-90, -180), então as células não "pulam" quando o mapa é arrastado.
 3. ```sql
    SELECT CAST((lat + 90) / :cell AS INT) AS row, CAST((lng + 180) / :cell AS INT) AS col,
@@ -430,26 +445,33 @@ milhares de pontos:
    `totalCount` de `searchProperties` com a mesma `bbox` (há teste). Um `filters.bbox` é ignorado
    — vale o argumento `bbox`.
 
-### 7.2 Comportamento no cliente
-- Marcador = bolha branca circular com o número (`MapCluster` do `ui`), como no original.
-  Pin vermelho no centro do bairro buscado.
-- Clique em cluster com `count > 1` → `fitBounds(cluster.bounds)`; com `count = 1` → popup com
-  mini-card do imóvel (`property(id)`).
-- Hover num card da lista destaca a célula que contém aquele imóvel (o card sabe sua lat/lng;
-  o web encontra a célula pela mesma fórmula, exportada por `shared/search/grid.ts`).
+### 7.2 Comportamento no cliente (`apps/web/src/features/search/SearchMap.tsx`)
+- Leaflet "puro" (sem react-leaflet), criado uma vez; marcadores são `L.divIcon` com o HTML de
+  `<MapCluster interactive={false} />` (bolha branca com o número, como no original). O marcador
+  do Leaflet é o elemento focável (Enter = clique) e recebe `aria-label` de `mapClusterLabel`.
+  Pino vermelho (`MapPin`) no centro do bairro quando há exatamente um no contexto.
+- Clique em cluster com `count > 1` → aproxima (`fitBounds` nos limites do cluster); com
+  `count = 1` → prévia do imóvel (`PropertyCard` sobre o mapa, query `property(id)`).
+- Hover num card da lista destaca o cluster que o contém: o web calcula o id da célula com
+  `cellOf`/`clusterId` de `@qa/shared` (mesma grade do servidor) e troca só aquele ícone.
 - **Bairro × área do mapa** (regra em business-rules §4.1):
-  - Escolher um bairro no autocomplete grava `bairros` na URL, **remove** `area-mapa`, e o
-    mapa faz `fitBounds` nos `bounds` do bairro. Lista: `neighborhoodSlugs`.
-  - `moveend` causado pelo usuário (não pelo `fitBounds` programático), com debounce de
-    400 ms, grava `area-mapa` na URL (replace, sem poluir o histórico) **mantendo** `bairros`.
-  - Com `area-mapa` presente, o web envia à lista **só** `bbox` (sem `neighborhoodSlugs`);
-    o bairro continua no campo de busca, no cabeçalho e como origem de "Mais próximos".
-  - Os clusters sempre recebem `bbox` + filtros, nunca `neighborhoodSlugs`.
-  - Toggle **"Buscar ao mover o mapa"** (ligado por padrão): desligado, o `moveend` só
-    atualiza os clusters e mostra o botão "Buscar nesta área".
-  - Essa montagem fica numa função pura `toApiFilters(urlState, mode)` em
-    `shared/search`, com testes.
-- Chips de filtros ativos sobrepostos ao topo do mapa, removíveis com ×.
+  - Escolher um bairro no autocomplete grava o bairro na URL e **remove** `area-mapa`; o mapa
+    enquadra os limites do bairro. Escolher uma **rua** grava o bairro da rua + `area-mapa` em
+    volta da rua. "Toda a cidade de São Paulo" limpa bairro e área.
+  - Movimento **do usuário** (arrastar, zoom, clique em cluster), com debounce de 400 ms, grava
+    `area-mapa` + `zoom` na URL (replace) **mantendo** o bairro.
+  - Movimentos **programáticos** (enquadrar bairro, voltar no histórico, `invalidateSize` ao
+    redimensionar) rodam dentro de `moveProgrammatically()`: sem animação, o `moveend` é
+    síncrono e um flag impede que ele vire busca. Sem isso, cada enquadramento gravaria uma área.
+  - URL → mapa: quando `area-mapa`/bairros mudam, o mapa se reposiciona — exceto se a área da
+    URL já é a que ele mostra (foi ele quem gravou).
+  - Mapa escondido (mobile em "Lista") tem tamanho 0: não calcula área nem enquadra; ao
+    aparecer, sincroniza com a URL. A coluna do mapa tem `isolation: isolate` para os z-index
+    do Leaflet não cobrirem o resto da página.
+  - Toggle **"Buscar ao mover o mapa"** (ligado por padrão, preferência salva no navegador):
+    desligado, mover só atualiza os clusters e mostra "Buscar nesta área".
+- Chips dos filtros ativos (`activeFilterChips` de `@qa/shared`) no topo do mapa, removíveis
+  com × (`removeActiveFilter`).
 - **(planejado, opcional)** "Desenhar área de busca": polígono enviado como lista de pontos;
   o servidor filtra por bbox do polígono no SQL e refina com point-in-polygon em memória.
 
@@ -458,9 +480,11 @@ milhares de pontos:
 Rotas:
 - `/comprar/imovel` — busca em toda a cidade.
 - `/comprar/imovel/:bairroSlug` — busca num bairro (atalho SEO; equivale a `bairros=slug`).
-- `/imovel/:id` — detalhe. Link "voltar" usa o histórico; se não houver, volta para a busca
-  da URL salva em `sessionStorage`.
-- `/favoritos` — busca com `onlyFavorites`.
+- `/` → redireciona para `/comprar/imovel`.
+- `/imovel/:id` — detalhe (provisório até a Etapa 6). O card navega na mesma aba, então o
+  "voltar" do navegador volta à busca com os filtros.
+- **(planejado, Etapa 6)** `/favoritos` — busca com `onlyFavorites`.
+- Qualquer outra rota → página "não encontrada".
 
 Query string (nomes em pt-BR, valores legíveis; ausente = "Tanto faz"):
 
@@ -479,7 +503,7 @@ Query string (nomes em pt-BR, valores legíveis; ausente = "Tanto faz"):
 | `vagas` | `1` | `minParkingSpaces` |
 | `publicado` | `7d` (`hoje`,`7d`,`15d`,`30d`,`2m`,`6m`) | `publishedWithin` |
 | `mobiliado` / `metro` / `exclusivo` / `alugado` | `sim` \| `nao` | booleanos |
-| `itens` | `piscina,academia` (slug kebab-case do `AmenityCode`) | `amenities` |
+| `itens` | `pool,gym,air-conditioning` (código do `AmenityCode` em kebab-case) | `amenities` |
 | `ordem` | `proximos`, `relevancia`, `recentes`, `menor-valor`, `maior-valor`, `maior-retorno` | `sort` |
 
 Sobre o formato: o original usa segmentos de path com tokens (`/q-ate-400000`); optamos por
@@ -490,23 +514,32 @@ o resto do código.
 Parse e serialização ficam **só** em `packages/shared/search/url.ts`, com teste de ida e volta.
 Valores inválidos na URL são descartados silenciosamente (a página nunca quebra por URL ruim).
 
-## 9. Frontend
+## 9. Frontend (`apps/web`)
 
-- **Roteamento:** React Router. **Dados:** TanStack Query + cliente `fetch` mínimo com
-  `TypedDocumentNode` gerado pelo codegen. Nenhum estado global além da URL e do cache do
-  TanStack Query; estado efêmero de UI fica local no componente.
-- **Layout desktop:** header → `FilterBar` (chips rápidos: Tipos, Valor, Quartos, Vagas,
-  Mais filtros) → split lista (grid 3 colunas, ~60%) | mapa sticky (~40%).
-- **Alvo principal: desktop/notebook** (≥ 1280 px; testar também em 1366×768, comum em
-  notebooks). Mobile tem prioridade baixa e será revisado depois.
-- **Mobile (< 768 px), quando for feito:** lista em 1 coluna; botão flutuante "Mapa"/"Lista"; chips com rolagem
-  horizontal; "Mais filtros" em tela cheia.
-- **Estados obrigatórios** em toda tela com dados: carregando (`Skeleton`), vazio (mensagem +
-  ação "Limpar filtros"), erro (mensagem + "Tentar novamente").
+- **Rotas:** React Router 8 (`createBrowserRouter`). **Dados:** TanStack Query + `graphqlRequest`
+  (`lib/graphql-client.ts`), que recebe as operações tipadas geradas pelo codegen
+  (`src/graphql/operations.ts` → `bun run codegen`) e lança `GraphQLRequestError` com
+  `code`/`field`. Erros `BAD_USER_INPUT` não são repetidos automaticamente.
+- **Estado:** a busca inteira vive na URL (`useSearchState`). Fora dela só há estado de tela
+  (hover, Lista/Mapa no mobile, rascunho dos filtros, preferência "Buscar ao mover o mapa").
+- **Layout:** `SearchLayout` do `ui` — header → `FilterBar` → lista rolável (grade
+  `auto-fill, minmax(240px, 1fr)`, 3 colunas em ~1440 px) | mapa (40%). CSS no web é **só de
+  layout/posicionamento** e **só com tokens** (`search-page.css`); nada de componente visual.
+- **Alvo principal: desktop/notebook** (≥ 1280 px; testar também 1366×768). **Mobile (< 768 px):**
+  uma coluna, botão flutuante "Lista | Mapa", chips com rolagem, "Mais filtros" em tela cheia.
+- **Estados obrigatórios** em toda tela com dados: carregando (`PropertyCardSkeleton`,
+  skeleton no cabeçalho, spinner no mapa), vazio (`StatusMessage` + "Limpar filtros"), erro
+  (`StatusMessage tone="error"` + "Tentar novamente").
+- **Lista:** 24 por página; "Ver mais" busca a próxima com o cursor; nova busca volta ao topo.
+  O card navega na mesma aba (Ctrl/Cmd+clique abre em nova aba).
 - **Favoritos:** `userId` UUID gerado e salvo em `localStorage` (`lib/user-id.ts`), enviado em
-  `x-user-id`. Toggle com update otimista no cache.
-- **Fotos:** URLs relativas servidas pela API em `/static/photos/…` (placeholders SVG
-  desenhados pela api — ver §5.3); o Vite faz proxy de `/static`.
+  `x-user-id` em toda request. O coração do card e as mutations chegam na Etapa 6.
+- **Fotos:** URLs relativas servidas pela API em `/static/photos/…` (§5.3); o Vite faz proxy
+  de `/graphql` e `/static`.
+- **Teste de ponta a ponta:** `bun run e2e` (com `bun run dev` rodando) abre o Chrome/Edge
+  instalado sem janela e percorre 14 fluxos (busca, filtros rápidos e painel, ordenação,
+  "Ver mais", voltar, chips do mapa, mover o mapa, autocomplete, vazio, erro, URL inválida,
+  mobile). Prints em `apps/web/e2e/screenshots/` (fora do git).
 
 ## 10. Design system
 
@@ -558,3 +591,7 @@ nenhum `var(--qa-…)` inexistente; o Storybook roda o addon a11y (axe).
 | Cache do SQLite 64 MB + mmap | Medido: buscas por bairro/área do mapa caíram de ~300 ms para ~35 ms (§5.4). |
 | Código-fonte TS exportado direto por `ui`/`shared` | Sem etapa de build entre pacotes; Bun e Vite leem `.ts` direto. |
 | Biome no lugar de ESLint + Prettier | Uma ferramenta só, rápida, sem plugins. |
+| Leaflet sem react-leaflet | Controle total de movimentos programáticos × do usuário (o ponto mais delicado da sincronia mapa ⇄ URL). |
+| Codegen do web com `documentMode: "string"` | Operações tipadas sem precisar do runtime `graphql` no navegador. |
+| `dev` da api roda a partir da raiz (`cd ../.. && bun --watch apps/api/src/index.ts`) | De dentro de `apps/api` o `bun --watch` não observa `packages/shared`: mudar uma regra exigiria reiniciar a api na mão. |
+| E2E com `puppeteer-core` + navegador instalado | Sem baixar navegador; roda no Windows/macOS/Linux com Chrome ou Edge. |

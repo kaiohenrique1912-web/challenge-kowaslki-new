@@ -1,24 +1,47 @@
-type GraphQLResponse<TData> = {
-  data?: TData;
-  errors?: { message: string }[];
+import type { TypedDocumentString } from "../graphql/generated/graphql.ts";
+import { getUserId } from "./user-id.ts";
+
+type GraphQLErrorPayload = {
+  message: string;
+  extensions?: { code?: string; field?: string };
 };
 
+/** Erro da API GraphQL com o código e o campo inválido (ex.: field "filters.price"). */
+export class GraphQLRequestError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+    readonly field?: string,
+  ) {
+    super(message);
+    this.name = "GraphQLRequestError";
+  }
+}
+
 /**
- * Cliente GraphQL mínimo. Na Etapa 5 passa a usar documentos tipados gerados pelo codegen.
+ * Executa uma operação gerada pelo codegen (`src/graphql/operations.ts`). Resultado e
+ * variáveis são tipados pelo schema; envia o usuário anônimo em `x-user-id`.
  */
-export async function graphqlRequest<TData>(
-  query: string,
-  variables?: Record<string, unknown>,
-): Promise<TData> {
+export async function graphqlRequest<TResult, TVariables>(
+  document: TypedDocumentString<TResult, TVariables>,
+  variables?: TVariables,
+  signal?: AbortSignal,
+): Promise<TResult> {
   const response = await fetch("/graphql", {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ query, variables }),
+    headers: { "content-type": "application/json", "x-user-id": getUserId() },
+    body: JSON.stringify({ query: document.toString(), variables }),
+    signal,
   });
-  if (!response.ok) throw new Error(`Falha na requisição GraphQL (HTTP ${response.status})`);
-
-  const body = (await response.json()) as GraphQLResponse<TData>;
-  if (body.errors?.length) throw new Error(body.errors.map((e) => e.message).join("; "));
-  if (!body.data) throw new Error("Resposta GraphQL sem dados");
+  const body = (await response.json().catch(() => ({}))) as {
+    data?: TResult;
+    errors?: GraphQLErrorPayload[];
+  };
+  const first = body.errors?.[0];
+  if (first)
+    throw new GraphQLRequestError(first.message, first.extensions?.code, first.extensions?.field);
+  if (!response.ok || !body.data) {
+    throw new GraphQLRequestError(`Falha na comunicação com a API (HTTP ${response.status}).`);
+  }
   return body.data;
 }

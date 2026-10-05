@@ -67,7 +67,13 @@ Arquivos-chave hoje:
   aluguel estimado), regras da busca (`search.ts`), grade do mapa (`map-grid.ts`);
   `packages/shared/src/validation/` — `propertyInputSchema`, `searchArgsSchema` e afins;
   `packages/shared/src/format/` — `formatBRL`, `propertyTitle`, `propertyHeadline`, `slugify`.
-- `apps/web/src/lib/graphql-client.ts` — cliente GraphQL.
+- `apps/web/src/graphql/operations.ts` — todas as operações GraphQL do web (`graphql(...)`);
+  `generated/` vem do `bun run codegen`. `apps/web/src/lib/graphql-client.ts` —
+  `graphqlRequest(documento, variáveis)` tipado, com `x-user-id` e erros com `field`.
+- `apps/web/src/features/search/` — página de busca: `use-search-state.ts` (estado = URL),
+  `queries.ts` (hooks TanStack Query), `SearchFilters`, `ResultsList`, `SearchMap` (Leaflet),
+  `LocationSearch`. Rotas em `apps/web/src/router.tsx`.
+- `apps/web/e2e/smoke.ts` — teste de ponta a ponta no navegador real.
 - `packages/ui/src/tokens/tokens.ts` — tokens (fonte única; `tokens.css` é gerado);
   `packages/ui/src/components/` — componentes base; `packages/ui/src/domain/` — componentes de
   imóveis (`PropertyCard`, `FilterBar`, `MapCluster`…); `packages/ui/src/index.ts` — exports;
@@ -92,10 +98,15 @@ Pré-requisito único: **Bun ≥ 1.4** (Node não é necessário). Rode tudo na 
 | Storybook | `bun run storybook` → http://localhost:6006 |
 | Build do Storybook | `bun run build-storybook` |
 | Regerar `tokens.css` após editar `tokens.ts` | `cd packages/ui && bun run tokens` |
-| Gerar tipos GraphQL após mudar o SDL | `bun run codegen` |
+| Gerar tipos GraphQL (api + web) após mudar o SDL ou `operations.ts` | `bun run codegen` |
 | Medir a busca com o banco de 60k | `bun run bench` (rode o seed antes) |
+| Teste de ponta a ponta no navegador (Chrome/Edge instalado) | `bun run e2e` (com `bun run dev` rodando; prints em `apps/web/e2e/screenshots/`) |
 
-Primeira vez rodando o projeto: `bun install` → `bun run seed` → `bun run dev`.
+Primeira vez rodando o projeto: `bun install` → `bun run seed` → `bun run dev` → abra
+http://localhost:5173.
+
+O `dev` da api roda a partir da raiz (`cd ../.. && bun --watch …`) de propósito: de dentro de
+`apps/api` o watch não enxerga `packages/shared` e a api ficaria com regras antigas.
 
 Portas: api `4000` (`PORT`), web `5173` (o Vite repassa `/graphql` e `/static` para `API_URL`,
 padrão `http://localhost:4000`), Storybook `6006`. Banco em `apps/api/data/app.db`
@@ -120,8 +131,11 @@ padrão `http://localhost:4000`), Storybook `6006`. Banco em `apps/api/data/app.
 - Mudança no banco = **nova** migração `apps/api/src/db/migrations/NNNN_nome.sql`; nunca edite
   uma migração já commitada. Gravou/editou imóvel? Recalcule os derivados
   (`recomputeDerivedFields`) e valide a entrada com `propertyInputSchema`.
-- Estado da busca vive na URL (`packages/shared/search/url.ts`).
+- Estado da busca vive na URL: `useSearchState()` no web, contrato em
+  `packages/shared/src/search/url.ts`. Filtro novo = campo em `PropertyFilters` + `url.ts` +
+  `toApiFilters` + `property-where.ts` + seção no `FilterPanel` (+ testes de cada um).
 - Toda tela com dados tem estados de carregando, vazio e erro.
+- Mudou tela? Rode `bun run e2e` e confira os prints — typecheck e testes não pegam layout.
 - Teste junto do código (`*.test.ts`); toda regra nova em `shared` tem teste.
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
 

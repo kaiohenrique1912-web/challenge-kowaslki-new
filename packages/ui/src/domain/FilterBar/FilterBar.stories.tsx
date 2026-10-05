@@ -1,58 +1,90 @@
+import { type PropertyFilters, quickFilterLabel } from "@qa/shared";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Button } from "../../components/Button/Button.tsx";
+import { MinCountFilter, PriceFilter, PropertyTypesFilter } from "../FilterPanel/FilterPanel.tsx";
 import { FilterBar, type QuickFilter } from "./FilterBar.tsx";
 
-const baseFilters: QuickFilter[] = [
-  { id: "price", label: "Valor", active: false },
-  { id: "types", label: "Tipos de imóvel", active: false },
-  { id: "bedrooms", label: "Quartos", active: false },
-  { id: "parking", label: "Vagas de garagem", active: false },
-];
+function Demo({
+  initial,
+  location = "Pinheiros, São Paulo – SP",
+}: {
+  initial: PropertyFilters;
+  location?: string;
+}) {
+  const [filters, setFilters] = useState(initial);
+  const [open, setOpen] = useState<string | null>(null);
+  const [text, setText] = useState(location);
+  const footer = (
+    <>
+      <Button variant="link" onClick={() => setFilters({})}>
+        Limpar
+      </Button>
+      <Button size="sm" onClick={() => setOpen(null)}>
+        Ver imóveis
+      </Button>
+    </>
+  );
+  const quickFilters: QuickFilter[] = [
+    {
+      id: "price",
+      ...quickFilterLabel("price", filters),
+      panel: <PriceFilter value={filters} onChange={setFilters} />,
+    },
+    {
+      id: "types",
+      ...quickFilterLabel("types", filters),
+      panel: <PropertyTypesFilter value={filters} onChange={setFilters} />,
+    },
+    {
+      id: "bedrooms",
+      ...quickFilterLabel("bedrooms", filters),
+      panel: <MinCountFilter field="bedrooms" value={filters} onChange={setFilters} />,
+    },
+    {
+      id: "parking",
+      ...quickFilterLabel("parking", filters),
+      panel: <MinCountFilter field="parkingSpaces" value={filters} onChange={setFilters} />,
+    },
+  ].map((f) => ({ ...f, panelFooter: footer }));
+  return (
+    <div style={{ minHeight: 420 }}>
+      <FilterBar
+        location={{ value: text, onChange: setText }}
+        quickFilters={quickFilters}
+        openFilterId={open}
+        onOpenFilterChange={setOpen}
+        onMoreFilters={() => {}}
+        activeCount={Object.keys(filters).length}
+      />
+    </div>
+  );
+}
 
 const meta = {
   title: "Domain/FilterBar",
   component: FilterBar,
   parameters: { layout: "fullscreen" },
   args: {
-    quickFilters: baseFilters,
-    onQuickFilterClick: () => {},
+    quickFilters: [],
+    openFilterId: null,
+    onOpenFilterChange: () => {},
     onMoreFilters: () => {},
-    location: { value: "Pinheiros, São Paulo – SP", onChange: () => {} },
-  },
-  render: function Render(args) {
-    const [location, setLocation] = useState(args.location?.value ?? "");
-    const [open, setOpen] = useState<string | null>(null);
-    return (
-      <FilterBar
-        {...args}
-        location={args.location ? { value: location, onChange: setLocation } : undefined}
-        quickFilters={args.quickFilters.map((f) => ({ ...f, open: f.id === open }))}
-        onQuickFilterClick={(id) => setOpen((current) => (current === id ? null : id))}
-      />
-    );
   },
 } satisfies Meta<typeof FilterBar>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const NoFilters: Story = {};
+/** Clique num chip para abrir o filtro dele. */
+export const NoFilters: Story = { render: () => <Demo initial={{}} /> };
 export const WithActiveFilters: Story = {
-  args: {
-    activeCount: 3,
-    quickFilters: [
-      { id: "price", label: "Até R$ 900 mil", active: true },
-      { id: "types", label: "Apartamento", active: true },
-      { id: "bedrooms", label: "3+ quartos", active: true },
-      { id: "parking", label: "Vagas de garagem", active: false },
-    ],
-    trailing: (
-      <Button variant="secondary" size="sm" iconLeft="sort">
-        Mais relevantes
-      </Button>
-    ),
-  },
+  render: () => (
+    <Demo initial={{ price: { max: 900_000 }, types: ["APARTMENT"], minBedrooms: 3 }} />
+  ),
 };
-export const EmptyLocation: Story = { args: { location: { value: "", onChange: () => {} } } };
-export const Mobile: Story = { globals: { viewport: { value: "mobile1", isRotated: false } } };
+export const EmptyLocation: Story = { render: () => <Demo initial={{}} location="" /> };
+export const Mobile: Story = {
+  globals: { viewport: { value: "mobile1", isRotated: false } },
+  render: () => <Demo initial={{ minBedrooms: 2 }} />,
+};

@@ -18,8 +18,9 @@
     "typecheck": "bun run --filter \"*\" typecheck",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "codegen": "bun run --filter @qa/api codegen",
-    "bench": "bun run --filter @qa/api bench"
+    "codegen": "bun run --filter @qa/api --filter @qa/web codegen",
+    "bench": "bun run --filter @qa/api bench",
+    "e2e": "bun run --filter @qa/web e2e"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

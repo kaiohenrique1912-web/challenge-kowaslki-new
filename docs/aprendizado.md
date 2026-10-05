@@ -491,3 +491,114 @@ Sugestões para olhar primeiro: **Domain › PropertyCard › Results Grid** (os
 | BEM | Jeito de nomear classes CSS: `bloco__parte--variante` (ex.: `qa-chip--selected`). |
 | Breakpoint | Largura de tela a partir da qual o layout muda (ex.: celular × notebook). |
 
+---
+
+# Aprendizado — Etapa 5 (Frontend da busca)
+
+> Na Etapa 5 todas as peças se juntaram: a **tela de busca funciona de verdade**, com os 60 mil imóveis, filtros, ordenação, mapa e celular. Abra com `bun run dev` → http://localhost:5173.
+
+## 1. O que foi feito, passo a passo
+
+### 1.1 A URL é a "memória" da busca
+Tudo o que você escolhe vira parte do endereço da página, por exemplo:
+
+`/comprar/imovel/pinheiros?quartos=3&tipos=apartamento&ordem=menor-valor`
+
+Por isso:
+- dá para **copiar o link** e mandar para alguém: a pessoa vê exatamente a mesma busca;
+- o botão **voltar** do navegador desfaz o último filtro;
+- recarregar a página não perde nada.
+
+As funções que leem e escrevem esse endereço ficam no `packages/shared` (`url.ts`). Um teste confere a "ida e volta" (estado → endereço → estado igual) e que um endereço com lixo (`quartos=99`, `ordem=xyz`) é ignorado sem quebrar a página.
+
+### 1.2 Peças novas no design system
+Para montar a tela foram criadas 9 peças novas no `packages/ui`, todas com story no Storybook:
+
+| Peça | Para quê |
+|---|---|
+| `Popover` | O painel que abre embaixo de um chip ("Quartos ▾") |
+| `Combobox` | O campo "Rua, bairro ou código" com sugestões |
+| `ChoiceChips` | Pílulas "Tanto faz · Sim · Não" |
+| `StatusMessage` | Mensagens "Nenhum imóvel encontrado" e de erro |
+| `AppHeader` | O cabeçalho com a marca |
+| `SearchLayout` | Lista à esquerda, mapa à direita; no celular, alterna |
+| `SortMenu` | O botão "Mais relevantes ▾" com as 6 ordenações |
+| `ResultsHeader` | "161 Apartamentos / com 3 quartos à venda em Pinheiros…" |
+| `FilterPanel` | O conteúdo inteiro do "Mais filtros" |
+
+A tela (`apps/web`) só **encaixa** essas peças; ela não tem visual próprio, só CSS de posicionamento (onde fica o mapa, a grade de cards).
+
+### 1.3 Os filtros funcionam com "rascunho"
+Quando você abre "Quartos" ou "Mais filtros", as mudanças vão para um **rascunho**. O botão mostra ao vivo quantos imóveis o rascunho encontraria ("Ver 161 imóveis"), e a busca só muda quando você clica nele, igual ao original. Assim a lista não fica pulando a cada clique.
+
+### 1.4 O mapa (a parte mais difícil)
+- As **bolinhas** vêm prontas do servidor (Etapa 3); a tela só desenha.
+- Passar o mouse num **card** pinta de azul a bolinha onde aquele imóvel está.
+- Clicar numa bolinha grande **aproxima**; clicar numa bolinha "1" mostra o **card do imóvel** sobre o mapa.
+- **Mover o mapa** (com "Buscar ao mover o mapa" ligado) muda a lista para a área visível, mantendo o bairro no título, como no original.
+- **O detalhe delicado:** o mapa também se move sozinho, por exemplo quando você escolhe outro bairro e ele se enquadra. Se o código não separasse "você moveu" de "eu movi", cada enquadramento viraria uma busca nova, em loop. O código marca os movimentos dele como "programáticos" e ignora esses.
+
+### 1.5 Cliente GraphQL tipado
+As perguntas que a tela faz à API ficam num arquivo só (`operations.ts`). O **codegen** lê esse arquivo e o schema da API e gera os tipos. Se a tela pedir um campo que não existe, ou a API mudar, o TypeScript avisa antes de rodar.
+
+### 1.6 Teste no navegador de verdade
+Até a Etapa 4 eu só conseguia verificar a tela por testes "sem tela". Agora há um teste (`bun run e2e`) que **abre o Chrome instalado no seu computador, sem janela**, clica nos botões como uma pessoa e confere o resultado. São 14 fluxos:
+
+1. busca por bairro;
+2. mouse no card destaca o mapa;
+3. filtro de quartos;
+4. ordenação por menor valor;
+5. "Ver mais";
+6. botão voltar;
+7. "Mais filtros" com Piscina;
+8. remover chip no mapa;
+9. arrastar o mapa;
+10. autocomplete;
+11. estado vazio;
+12. estado de erro (a API é desligada de mentira);
+13. endereço inválido;
+14. celular.
+
+Ele também **tira prints** de cada passo, e foi olhando esses prints que achei boa parte dos problemas abaixo.
+
+## 2. Problemas encontrados e como foram resolvidos
+
+- **Mapa poluído:** com quadradinhos de 64 px apareciam 224 bolinhas, bem mais denso que o original. A grade passou a ter 128 px.
+- **API sem as regras novas:** o servidor em modo desenvolvimento não percebia mudanças no `packages/shared`, porque só observava a própria pasta. Mudar uma regra exigiria reiniciar a API na mão; agora ele observa o projeto todo.
+- **Campo "Máximo" vazando:** nos painéis, o campo saía pela borda. O `<input>` tem uma largura mínima "natural" que a grade respeitava.
+- **Botão "Lista | Mapa" sumindo no celular:** no modo Mapa, o mapa ficava **por cima** do botão de voltar para a lista, e não havia como voltar. As camadas do Leaflet competiam com o resto da página; o mapa foi "isolado" e o teste agora verifica que o botão continua clicável.
+- **Chips do mapa empilhados:** dividiam o espaço com "Buscar ao mover o mapa"; o controle foi para o canto de baixo.
+- **Menu de ordenação fechando sozinho:** com o padrão de "botões de opção", apertar ↓ já escolhia a ordenação e fechava o menu. Passou a ser um menu: setas andam, Enter escolhe.
+- **Teste "instável":** o teste clicava no meio da animação de abertura do painel e errava o alvo. Ele agora espera as animações terminarem (para quem usa, não havia problema).
+
+## 3. Resultado
+
+| Item | Situação |
+|---|---|
+| Testes automáticos | 153 passando |
+| Teste no navegador | 14/14 fluxos passando |
+| Componentes novos no design system | 9 (com stories) |
+| Fica para a Etapa 6 | Página de detalhe completa e o coração de favoritar |
+
+## 4. Como testar você mesmo
+
+```
+bun run dev        # API + tela
+# abra http://localhost:5173 e brinque: filtros, mapa, ordenação, voltar
+bun run e2e        # (com o dev rodando) os 14 fluxos no Chrome; prints em apps/web/e2e/screenshots
+```
+
+## 5. Glossário da Etapa 5
+
+| Termo | Significado |
+|---|---|
+| Query string | A parte do endereço depois do `?` (ex.: `?quartos=3`), onde ficam os filtros. |
+| Rota | Qual página aparece para cada endereço (ex.: `/imovel/123` → página do imóvel). |
+| Rascunho | Cópia dos filtros que você edita antes de confirmar. |
+| Cache | Respostas guardadas para não perguntar de novo à API (o TanStack Query cuida disso). |
+| Debounce | Esperar a pessoa parar de digitar ou mexer antes de buscar. |
+| Tile | Cada "azulejo" de imagem que forma o mapa (vem do OpenStreetMap). |
+| Teste de ponta a ponta (e2e) | Teste que usa o sistema inteiro como uma pessoa usaria, no navegador. |
+| Headless | Navegador rodando sem janela, controlado por um programa. |
+| z-index | "Altura" de um elemento na pilha da tela: quem fica por cima de quem. |
+

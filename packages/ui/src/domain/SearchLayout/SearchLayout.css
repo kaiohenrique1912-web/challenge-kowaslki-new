@@ -1,0 +1,61 @@
+.qa-search-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh; /* altura visível real no celular (barra do navegador) */
+  overflow: hidden;
+  background: var(--qa-color-surface);
+}
+
+.qa-search-layout__body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 40%);
+  min-height: 0;
+}
+
+.qa-search-layout__list {
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--qa-space-6) var(--qa-space-8) var(--qa-space-12);
+}
+
+.qa-search-layout__map {
+  position: relative;
+  isolation: isolate; /* z-index do mapa (ex.: Leaflet) fica contido aqui */
+  min-height: 0;
+  border-left: 1px solid var(--qa-color-divider);
+}
+
+.qa-search-layout__toggle {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .qa-search-layout__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .qa-search-layout__list {
+    padding: var(--qa-space-4) var(--qa-space-4) calc(var(--qa-space-16) + var(--qa-space-6));
+  }
+
+  .qa-search-layout__map {
+    border-left: none;
+  }
+
+  .qa-search-layout--show-list .qa-search-layout__map,
+  .qa-search-layout--show-map .qa-search-layout__list {
+    display: none;
+  }
+
+  .qa-search-layout__toggle {
+    position: fixed;
+    bottom: var(--qa-space-6);
+    left: 50%;
+    z-index: var(--qa-z-index-sticky);
+    display: block;
+    transform: translateX(-50%);
+    border-radius: var(--qa-radius-pill);
+    box-shadow: var(--qa-shadow-lg);
+  }
+}

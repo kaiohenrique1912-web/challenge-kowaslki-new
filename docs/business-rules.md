@@ -8,7 +8,10 @@
 > (`propertyInputSchema`); derivados, badges e relevância → `domain/derived.ts`;
 > §3 comodidades → `domain/amenities.ts`; §4 busca (ordenações, publicação, página) →
 > `domain/search.ts` + `validation/search.ts` (`searchFiltersSchema`); §6 textos →
-> `format/property-text.ts` (`formatBRL`, `propertyTitle`, `propertyHeadline`).
+> `format/property-text.ts` (`formatBRL`, `propertyTitle`, `propertyHeadline`,
+> `propertyAttributesLine`, `monthlyCostLabel`, `publicAddress`); estado da busca, URL,
+> cabeçalho e chips → `search/` (`toApiFilters`, `parseSearchState`, `searchResultsHeading`,
+> `activeFilterChips`, `validatePropertyFilters`).
 >
 > Origem do levantamento: [feature-analysis.md](feature-analysis.md). Regras marcadas com
 > **(suposição)** ainda aguardam validação; se mudarem, atualize aqui e em `packages/shared`.
@@ -145,6 +148,10 @@ API é literal. **Na busca (comportamento do original, validado):**
   área visível** (`bbox`), mesmo que isso traga imóveis de fora do bairro.
 - Os clusters do mapa sempre usam a área visível + os demais filtros (nunca o bairro), por
   isso o zoom out mostra imóveis de outros bairros.
+- Campo "Rua, bairro ou código": escolher um **bairro** troca o contexto e descarta a área do
+  mapa; escolher uma **rua** usa o bairro da rua como contexto e a área em volta da rua como
+  filtro; um **código** abre o imóvel; "Toda a cidade de São Paulo" remove bairro e área.
+- Mudar filtros mantém o contexto de localização; mudar a localização mantém os filtros.
 
 Erros de validação são retornados como erro GraphQL com `extensions.code = "BAD_USER_INPUT"`,
 `extensions.field` com o caminho do argumento (ex.: `"filters.price"`) e mensagem em
@@ -237,6 +244,12 @@ O card mostra **no máximo 2** badges, nesta ordem de prioridade: `EXCLUSIVE`, `
   - `local` = `{Bairro}, São Paulo, SP` com um bairro no contexto (inclusive depois de mover o
     mapa, como no original); `São Paulo, SP` sem bairro ou com vários bairros.
   - Ex.: "7.887 Apartamentos com 3 quartos à venda em Pinheiros, São Paulo, SP".
+  - Exibido em duas linhas, como no original: título "7.887 Apartamentos" e subtítulo
+    "com 3 quartos à venda em Pinheiros, São Paulo, SP" (`searchResultsHeading`).
+- **Chips de filtros ativos** (sobre o mapa e nos filtros rápidos): "Até R$ 900 mil",
+  "R$ 500 mil – R$ 1,5 mi", "3+ quartos", "1+ vaga", "Apartamento, Casa" (3+ tipos: "3 tipos"),
+  "Sem mobília", "Piscina"… — valores em formato compacto (`formatCompactBRL`); cada
+  comodidade é um chip. Fonte: `activeFilterChips`/`quickFilterLabel`.
 
 ## 7. Ciclo de vida do imóvel (para cadastro/edição)
 1. Criado como `DRAFT`. Todos os campos obrigatórios do §2.1 são validados já na criação;

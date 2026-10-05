@@ -2,8 +2,9 @@
 
 > Kit visual do clone do QuintoAndar: tokens + componentes React documentados no Storybook
 > (`bun run storybook` → http://localhost:6006). Toda tela em `apps/web` é montada **só** com
-> o que está aqui. Faltou algo? Crie o componente em `packages/ui` (receita no §6), nunca
-> estilize "na mão" dentro do web.
+> o que está aqui. Faltou algo? Crie o componente em `packages/ui` (receita no §6). No web só
+> existe CSS de **layout/posicionamento** (grade da lista, sobreposições do mapa), e só com tokens
+> — nenhuma aparência de componente.
 >
 > Referência visual: prints em [docs/reference/](reference/) (`tela_apos_busca.jpeg`,
 > `mais_filtros*.jpeg`, `abrir_oferta*.png`, `mapa_zoom_out.png`).
@@ -70,6 +71,10 @@ desktop/notebook (≥ 1280 px, testar também 1366×768); mobile (< 768 px) tem 
 | `Tooltip` | Dica curta no hover/foco ou fixa (`open`): "Que tal salvar este imóvel?". | Conteúdo interativo |
 | `Modal` | Diálogo central curto (confirmação, compartilhar). Foco preso, Esc fecha, foco volta. | Painéis longos (use `Drawer`) |
 | `Drawer` | Painel lateral com corpo rolável e rodapé fixo: **"Mais filtros"** ("Limpar" + "Ver N imóveis"). Tela cheia no mobile. | |
+| `Popover` | Painel flutuante ancorado num gatilho: filtros rápidos da barra, menu de ordenação. Renderizado no `body` com posição fixa (não é cortado por containers roláveis); fecha no clique fora e no Esc; `footer` opcional. Controlado: `open` + `onClose`; quem abre é o gatilho. | Conteúdo longo (use `Drawer`) |
+| `Combobox` | Campo com sugestões (WAI-ARIA combobox): ↓/↑, Enter, Esc. Sugestões vêm de fora (`options`), `onSelect`, `loading`, `minChars`. Ex.: "Rua, bairro ou código". | Lista fixa curta (use `Select`) |
+| `ChoiceChips` | Pílulas de escolha única com texto: "Tanto faz · Sim · Não", "Hoje · Últimos 7 dias…". Valor pode ser `undefined` ("Tanto faz"). | Mínimos numéricos (use `CounterSelector`) |
+| `StatusMessage` | Estado vazio ou de erro, centralizado, com ação ("Limpar filtros", "Tentar novamente"). `tone="error"` anuncia na hora (`role="alert"`). | Erro de um campo (use `error` do campo) |
 | `Pagination` | Páginas numeradas em listas de tamanho fixo. **A busca não usa** — usa "Ver mais" (`Button variant="secondary"`), por causa do cursor. | Busca de imóveis |
 | `Icon` | Ícones de linha (24 px, traço 1.75). Lista em `ICON_NAMES` / story `Base/IconButton › Icon Gallery`. Decorativo por padrão; passe `title` se for informativo. | |
 
@@ -86,8 +91,14 @@ Recebem dados no formato da API (campos de `searchProperties`/`property`) e usam
 | `PropertyBadges` | Selos na ordem de prioridade de `business-rules §5`, até `limit` (card: 2). | `badges: PropertyBadge[]` (vêm da API), `limit`, `tone`. |
 | `PriceTag` | Preço de venda + linha mensal; preço anterior riscado quando caiu. | `salePrice`, `monthlyCost`, `previousPrice?`, `size` (`sm` card, `lg` detalhe). |
 | `FavoriteButton` | Coração (`aria-pressed`); não propaga o clique para o card. | `favorite`, `onToggle`, `variant` (`plain`/`surface`), `showLabel` ("Favoritar" no detalhe). |
-| `FilterBar` | Barra do topo: localização + chips rápidos + "Mais filtros" (com contador). Só apresentação. | `location` ou `locationSlot` (autocomplete do web), `quickFilters: {id,label,active,open}[]`, `onQuickFilterClick`, `onMoreFilters`, `activeCount`, `trailing` (ex.: ordenação). |
-| `MapCluster` | Bolha branca com a contagem (igual ao original, inclusive "1"); azul quando `highlighted`. | `count`, `highlighted`, `onClick`. No Leaflet: `L.divIcon({ html: renderToStaticMarkup(<MapCluster count={n} />) })`. `formatClusterCount` → "1,2 mil". |
+| `FilterBar` | Barra do topo: localização + chips rápidos (cada um abre um `Popover` com o seu filtro) + "Mais filtros" (com contador). Só apresentação. | `location` ou `locationSlot` (autocomplete do web), `quickFilters: {id, label, active, panel?, panelFooter?}[]` (rótulo/ativo via `quickFilterLabel` de `@qa/shared`), `openFilterId` + `onOpenFilterChange`, `onMoreFilters`, `activeCount` (`countActiveFilters`), `trailing`. |
+| `FilterPanel` | Todos os filtros de atributo, na ordem do "Mais filtros" do original (valor, condomínio + IPTU, tipos, data, quartos/banheiros/vagas, área, mobiliado/metrô/exclusivos/suítes, compre já alugado, 7 categorias de comodidades). Controlado: `value`/`onChange` com `PropertyFilters` de `@qa/shared`; erros de faixa vêm de `validatePropertyFilters`. | Use dentro de `Drawer`; o rodapé é do dono. |
+| Seções do painel | `PriceFilter`, `MonthlyCostFilter`, `AreaFilter`, `PropertyTypesFilter`, `PublishedWithinFilter`, `MinCountFilter field=…`, `YesNoFilter field=…`, `RentedFilter`, `AmenitiesFilter` — mesma assinatura (`value`, `onChange`); reaproveitadas nos popovers dos chips rápidos. | Um formulário de cadastro pode reaproveitar `PropertyTypesFilter`/`AmenitiesFilter` como referência visual. |
+| `SearchLayout` | Esqueleto da página de busca: `header`, `filters`, `list` (rolável) e `map` (40%, isolado); abaixo de 768 px vira uma coluna com botão flutuante "Lista \| Mapa" (`mobileView`/`onMobileViewChange`). | |
+| `ResultsHeader` | "7.887 Apartamentos" + "com 3 quartos à venda em…" (`searchResultsHeading` de `@qa/shared`), `loading` (skeleton), `actions` (ex.: `SortMenu`). | |
+| `SortMenu` | Botão "Mais relevantes ▾" com as 6 ordenações (`menuitemradio`: ↓/↑ movem o foco, Enter escolhe e fecha). | `value`, `onChange`, `options?`. |
+| `AppHeader` | Cabeçalho do site: marca, links (`active`), `actions`. `onNavigate` para o React Router. | |
+| `MapCluster` | Bolha branca com a contagem (igual ao original, inclusive "1"); azul quando `highlighted`. | `count`, `highlighted`, `onClick`, `interactive` (padrão `true` = `<button>`). No Leaflet use `interactive={false}` dentro de `L.divIcon({ html: renderToStaticMarkup(...) })` — o marcador do Leaflet é que é focável; dê a ele `aria-label` de `mapClusterLabel(count)`. `formatClusterCount` → "1,2 mil". |
 | `MapPin` | Pino vermelho do local buscado (centro do bairro). | `label`. |
 
 Dados de exemplo para stories/testes: `packages/ui/src/fixtures/properties.ts`.
@@ -128,9 +139,11 @@ Dados de exemplo para stories/testes: `packages/ui/src/fixtures/properties.ts`.
 
 | Tela do original | Componentes |
 |---|---|
-| Barra de filtros (`tela_apos_busca.jpeg`) | `FilterBar` (`Input appearance="pill"` + `Chip hasMenu` + "Mais filtros") |
-| Cabeçalho da lista ("11 imóveis", "Mais relevantes") | texto + `Button variant="secondary" iconLeft="sort"` |
+| Página inteira | `SearchLayout` + `AppHeader` |
+| Barra de filtros (`tela_apos_busca.jpeg`) | `FilterBar` (`Combobox` de localização + `Chip hasMenu` com `Popover` + "Mais filtros") |
+| Cabeçalho da lista ("11 imóveis", "Mais relevantes") | `ResultsHeader` + `SortMenu` |
 | Card | `PropertyCard` (`PhotoCarousel`, `PropertyBadges`, `PriceTag`, `FavoriteButton`) |
-| Mapa | `MapCluster`, `MapPin`, `Chip onRemove` (filtros sobre o mapa), `Button` "Desenhar área de busca" |
-| Painel "Mais filtros" (`mais_filtros*.jpeg`) | `Drawer` + `SegmentedControl` + `RangeField` + `Checkbox` (grade) + `CounterSelector` + rodapé com `Button link` "Limpar" e `Button` "Ver N imóveis" |
+| Mapa | `MapCluster`, `MapPin`, `Chip onRemove` (filtros sobre o mapa), `Toggle` "Buscar ao mover o mapa", `PropertyCard` (prévia ao clicar num "1") |
+| Painel "Mais filtros" (`mais_filtros*.jpeg`) | `Drawer` + `FilterPanel` (`RangeField`, `Checkbox` em grade, `CounterSelector`, `ChoiceChips`, `Toggle`) + rodapé com `Button link` "Limpar" e `Button` "Ver N imóveis" |
+| Lista vazia / erro | `StatusMessage` |
 | Detalhe (`abrir_oferta*.png`) | `PhotoCarousel`/galeria, `PriceTag size="lg"`, `Tag` (atributos e itens), `Badge` ("Imóvel 1601406"), `FavoriteButton showLabel`, `Tooltip`, `Button` "Agendar visita" |

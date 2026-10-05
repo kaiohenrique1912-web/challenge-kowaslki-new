@@ -18,7 +18,7 @@ describe("publishedWithinStart", () => {
 
 describe("map grid", () => {
   test("cell size halves at each zoom level", () => {
-    expect(cellSizeForZoom(0)).toBe(90);
+    expect(cellSizeForZoom(0)).toBe(180);
     expect(cellSizeForZoom(12)).toBeCloseTo(cellSizeForZoom(11) / 2);
   });
 

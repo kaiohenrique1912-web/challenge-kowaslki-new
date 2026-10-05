@@ -7,8 +7,20 @@ export type MapClusterProps = {
   /** Destaque (card correspondente sob o mouse ou cluster selecionado). */
   highlighted?: boolean;
   onClick?: () => void;
+  /**
+   * false: renderiza um `<span>` só visual — use dentro de marcadores do Leaflet, que já são
+   * focáveis/clicáveis (dê a eles o `aria-label` de `mapClusterLabel`).
+   */
+  interactive?: boolean;
   className?: string;
 };
+
+/** Texto acessível da bolha: "53 imóveis — aproximar" / "1 imóvel — ver imóvel". */
+export function mapClusterLabel(count: number): string {
+  return count === 1
+    ? "1 imóvel — ver imóvel"
+    : `${count.toLocaleString("pt-BR")} imóveis — aproximar`;
+}
 
 /** Formata a contagem da bolha: 1.234 → "1,2 mil". */
 export function formatClusterCount(count: number): string {
@@ -20,21 +32,29 @@ export function formatClusterCount(count: number): string {
  * Bolha branca com o número de imóveis — o marcador do mapa (igual ao original, inclusive com
  * "1" no zoom de rua). Para o Leaflet, renderize com `renderToStaticMarkup` dentro de um DivIcon.
  */
-export function MapCluster({ count, highlighted = false, onClick, className }: MapClusterProps) {
+export function MapCluster({
+  count,
+  highlighted = false,
+  onClick,
+  interactive = true,
+  className,
+}: MapClusterProps) {
   const size = count >= 1_000 ? "lg" : count >= 100 ? "md" : "sm";
-  const label = count === 1 ? "1 imóvel" : `${count.toLocaleString("pt-BR")} imóveis`;
+  const classes = cx(
+    "qa-map-cluster",
+    `qa-map-cluster--${size}`,
+    highlighted && "qa-map-cluster--highlighted",
+    className,
+  );
+  if (!interactive) {
+    return (
+      <span className={classes} aria-hidden="true">
+        {formatClusterCount(count)}
+      </span>
+    );
+  }
   return (
-    <button
-      type="button"
-      className={cx(
-        "qa-map-cluster",
-        `qa-map-cluster--${size}`,
-        highlighted && "qa-map-cluster--highlighted",
-        className,
-      )}
-      aria-label={count === 1 ? `${label} — ver imóvel` : `${label} — aproximar`}
-      onClick={onClick}
-    >
+    <button type="button" className={classes} aria-label={mapClusterLabel(count)} onClick={onClick}>
       {formatClusterCount(count)}
     </button>
   );

@@ -7,6 +7,16 @@ export { Button, type ButtonProps } from "./components/Button/Button.tsx";
 export { Checkbox, type CheckboxProps } from "./components/Checkbox/Checkbox.tsx";
 export { Chip, type ChipProps } from "./components/Chip/Chip.tsx";
 export {
+  ChoiceChips,
+  type ChoiceChipsProps,
+  type ChoiceOption,
+} from "./components/ChoiceChips/ChoiceChips.tsx";
+export {
+  Combobox,
+  type ComboboxOption,
+  type ComboboxProps,
+} from "./components/Combobox/Combobox.tsx";
+export {
   CounterSelector,
   type CounterSelectorProps,
 } from "./components/CounterSelector/CounterSelector.tsx";
@@ -19,6 +29,7 @@ export {
   type PaginationProps,
   pageItems,
 } from "./components/Pagination/Pagination.tsx";
+export { Popover, type PopoverProps } from "./components/Popover/Popover.tsx";
 export {
   RangeField,
   type RangeFieldProps,
@@ -33,22 +44,47 @@ export {
 export { Select, type SelectOption, type SelectProps } from "./components/Select/Select.tsx";
 export { Skeleton, type SkeletonProps } from "./components/Skeleton/Skeleton.tsx";
 export { Spinner, type SpinnerProps } from "./components/Spinner/Spinner.tsx";
+export {
+  StatusMessage,
+  type StatusMessageProps,
+} from "./components/StatusMessage/StatusMessage.tsx";
 export { Tag, type TagProps } from "./components/Tag/Tag.tsx";
 export { Toggle, type ToggleProps } from "./components/Toggle/Toggle.tsx";
 export { Tooltip, type TooltipProps } from "./components/Tooltip/Tooltip.tsx";
 
 // Domínio (imóveis)
 export {
+  AppHeader,
+  type AppHeaderLink,
+  type AppHeaderProps,
+} from "./domain/AppHeader/AppHeader.tsx";
+export {
   FavoriteButton,
   type FavoriteButtonProps,
 } from "./domain/FavoriteButton/FavoriteButton.tsx";
 export { FilterBar, type FilterBarProps, type QuickFilter } from "./domain/FilterBar/FilterBar.tsx";
+export {
+  AmenitiesFilter,
+  AreaFilter,
+  FilterPanel,
+  type FilterPanelProps,
+  type FilterSectionProps,
+  MinCountFilter,
+  MonthlyCostFilter,
+  PriceFilter,
+  PropertyTypesFilter,
+  PublishedWithinFilter,
+  RANGE_SCALES,
+  RentedFilter,
+  YesNoFilter,
+} from "./domain/FilterPanel/FilterPanel.tsx";
 export {
   formatClusterCount,
   MapCluster,
   type MapClusterProps,
   MapPin,
   type MapPinProps,
+  mapClusterLabel,
 } from "./domain/MapMarkers/MapMarkers.tsx";
 export { PhotoCarousel, type PhotoCarouselProps } from "./domain/PhotoCarousel/PhotoCarousel.tsx";
 export { PriceTag, type PriceTagProps } from "./domain/PriceTag/PriceTag.tsx";
@@ -62,6 +98,13 @@ export {
   type PropertyCardProps,
   PropertyCardSkeleton,
 } from "./domain/PropertyCard/PropertyCard.tsx";
+export { ResultsHeader, type ResultsHeaderProps } from "./domain/ResultsHeader/ResultsHeader.tsx";
+export {
+  SearchLayout,
+  type SearchLayoutProps,
+  type SearchView,
+} from "./domain/SearchLayout/SearchLayout.tsx";
+export { SortMenu, type SortMenuProps } from "./domain/SortMenu/SortMenu.tsx";
 
 // Ícones, tokens e utilitários
 export { ICON_NAMES, Icon, type IconName, type IconProps } from "./icons/Icon.tsx";

@@ -6,8 +6,8 @@ import type { LatLng } from "./search.ts";
  */
 
 export const MAP_ZOOM = { min: 0, max: 22 } as const;
-/** Células por tile de 256 px → cada célula tem ~64 px na tela. */
-export const CELLS_PER_TILE = 4;
+/** Células por tile de 256 px → cada célula tem ~128 px na tela (densidade parecida com o original). */
+export const CELLS_PER_TILE = 2;
 /** Se a área visível gerar mais células que isso, o servidor agrega com um zoom menor. */
 export const MAX_MAP_CELLS = 1_000;
 

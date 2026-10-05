@@ -43,6 +43,7 @@
 
 .qa-input__field {
   flex: 1;
+  width: 100%;
   min-width: 0;
   height: 100%;
   min-height: calc(var(--qa-control-md) - 2px);

@@ -1,0 +1,148 @@
+/*
+ * Layout específico da página de busca (posições e grade). Só tokens do design system — nada de
+ * componente visual aqui (eles vêm de @qa/ui).
+ */
+
+.search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--qa-space-8) var(--qa-space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-results-more {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--qa-space-8);
+}
+
+/* Mapa */
+.search-map {
+  position: absolute;
+  inset: 0;
+}
+
+.search-map__canvas {
+  position: absolute;
+  inset: 0;
+  background: var(--qa-color-surface-muted);
+}
+
+.search-map__top {
+  position: absolute;
+  top: var(--qa-space-4);
+  right: var(--qa-space-4);
+  left: var(--qa-space-4);
+  z-index: 500;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--qa-space-3);
+  pointer-events: none;
+}
+
+.search-map__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--qa-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-map__chips {
+  pointer-events: auto;
+}
+
+.search-map__toggle {
+  position: absolute;
+  bottom: var(--qa-space-6);
+  left: var(--qa-space-4);
+  z-index: 500;
+  padding: var(--qa-space-2) var(--qa-space-3);
+  border-radius: var(--qa-radius-pill);
+  background: var(--qa-color-surface);
+  box-shadow: var(--qa-shadow-md);
+}
+
+.search-map__center-action {
+  position: absolute;
+  top: calc(var(--qa-space-16) + var(--qa-space-2));
+  left: 50%;
+  z-index: 500;
+  transform: translateX(-50%);
+  box-shadow: var(--qa-shadow-md);
+  border-radius: var(--qa-radius-pill);
+}
+
+.search-map__status {
+  position: absolute;
+  bottom: var(--qa-space-6);
+  left: 50%;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--qa-space-2);
+  transform: translateX(-50%);
+  color: var(--qa-color-primary);
+}
+
+.search-map__preview {
+  position: absolute;
+  bottom: calc(var(--qa-space-16) + var(--qa-space-4)); /* acima do "Buscar ao mover o mapa" */
+  left: var(--qa-space-4);
+  z-index: 600;
+  width: min(300px, calc(100% - var(--qa-space-8)));
+  padding: var(--qa-space-3);
+  border-radius: var(--qa-radius-xl);
+  background: var(--qa-color-surface);
+  box-shadow: var(--qa-shadow-lg);
+}
+
+.search-map__preview-close {
+  position: absolute;
+  top: var(--qa-space-5);
+  right: var(--qa-space-5);
+  z-index: 3;
+}
+
+.search-map__preview-loading {
+  display: grid;
+  place-items: center;
+  height: 240px;
+  color: var(--qa-color-primary);
+}
+
+/* Marcadores do Leaflet: o ícone tem tamanho 0 e o conteúdo é centralizado no ponto. */
+.search-map-marker {
+  overflow: visible;
+}
+
+.search-map-marker > * {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.search-map-marker--pin > * {
+  transform: translate(-50%, -100%);
+}
+
+.leaflet-marker-icon.search-map-marker:focus-visible {
+  outline: none;
+}
+
+.leaflet-marker-icon.search-map-marker:focus-visible > * {
+  box-shadow: var(--qa-shadow-map), var(--qa-focus-ring);
+}
+
+.leaflet-container {
+  font-family: var(--qa-font-family);
+}
+
+@media (max-width: 767px) {
+  .search-map__toggle {
+    display: none;
+  }
+}
