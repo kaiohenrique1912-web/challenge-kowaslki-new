@@ -14,8 +14,14 @@ e o design existentes.
 3. Mudou uma regra ou decisão? Atualize o doc no **mesmo commit**.
 
 Skills do projeto (`.claude/skills/`): `nova-feature` (feature ponta a ponta),
-`regras-imoveis` (onde está cada regra de imóvel no código), `conferir-visual` (compara o
-site com os prints do original e corrige).
+`regras-imoveis` (onde está cada regra de imóvel no código), `checkup-original` (compara com
+o QuintoAndar **ao vivo**: chips, filtros, tipografia, hover, teclado — e cria sondas para
+features novas), `conferir-visual` (compara com os prints de `docs/reference/`).
+
+**Hook de Stop** (`.claude/settings.json` → `.claude/hooks/checkup-reminder.ts`): se telas
+(`apps/web/src`, `packages/ui/src`) mudaram depois do último check-up, o agente não encerra
+sem rodar `checkup-original`. Acesso ao site original é autorizado; se ele bloquear o robô,
+avise o usuário.
 
 Outros docs: [README.md](README.md) (visão geral, decisões), [PROGRESS.md](PROGRESS.md)
 (etapas), [docs/feature-analysis.md](docs/feature-analysis.md) (levantamento do original),
@@ -61,7 +67,7 @@ nova: `bun add <pacote>` **dentro** da pasta do workspace.
 | Mapa | `features/search/SearchMap.tsx`, `lib/map-tiles.ts`, `styles/map-markers.css` |
 | Componentes | `packages/ui/src/components/` (base), `domain/` (imóveis), `index.ts` (exports) |
 | Tokens | `packages/ui/src/tokens/tokens.ts` (fonte; `tokens.css` é gerado) |
-| Testes no navegador | `apps/web/e2e/smoke.ts` (fluxos), `visual.ts` (× original), `browser.ts` |
+| Testes no navegador | `apps/web/e2e/smoke.ts` (fluxos), `checkup.ts` (× site ao vivo, sondas), `visual.ts` (× prints), `browser.ts` |
 
 ## Comandos (na raiz)
 
@@ -74,7 +80,7 @@ nova: `bun add <pacote>` **dentro** da pasta do workspace.
 | Tipos GraphQL (após mudar SDL ou `operations.ts`) | `bun run codegen` |
 | Tokens (após editar `tokens.ts`) | `cd packages/ui && bun run tokens` |
 | Storybook | `bun run storybook` (:6006) |
-| Navegador real (com `dev` rodando) | `bun run e2e` (prints em `apps/web/e2e/screenshots/`) · `bun run visual [cena]` (lado a lado com o original em `apps/web/e2e/visual/`) |
+| Navegador real (com `dev` rodando) | `bun run e2e` (prints em `apps/web/e2e/screenshots/`) · `bun run checkup [sonda]` (× QuintoAndar ao vivo → `apps/web/e2e/checkup/report.md`) · `bun run visual [cena]` (× prints em `docs/reference/`) |
 | Desempenho | `bun run bench` |
 
 Notas: o `dev` da api roda a partir da raiz de propósito (o watch precisa ver
@@ -100,7 +106,8 @@ terminar (portas 4000 e 5173).
   tem carregando, vazio e erro. O que existe no original e não aqui usa `useOutOfScope()`.
 - **Busca:** estado na URL (`useSearchState`). Filtro novo = `PropertyFilters` + `url.ts` +
   `toApiFilters` + `property-where.ts` + seção no `FilterPanel` (+ testes).
-- Mudou tela → `bun run e2e` e confira os prints; tem print do original → `bun run visual`.
+- Mudou tela → `bun run e2e` e confira os prints, `bun run checkup` (original ao vivo; feature
+  que existe no original ganha sonda nova) e, se houver print, `bun run visual`.
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
 
 ## Feature nova em 9 passos (resumo de docs/feature-recipe.md)
@@ -112,11 +119,13 @@ terminar (portas 4000 e 5173).
 5. **API:** módulo repository → service → resolvers (+ registro em `graphql/resolvers.ts`) + testes.
 6. **ui:** componentes que faltarem, com stories.
 7. **web:** operações → hooks → página/rota → ligar o ponto de entrada (menu/aba/botão).
-8. **Provar:** `format`, `lint`, `typecheck`, `bun test`, `bun run e2e` (+ fluxo novo no smoke).
+8. **Provar:** `format`, `lint`, `typecheck`, `bun test`, `bun run e2e` (+ fluxo novo no smoke),
+   `bun run checkup` (+ sonda nova se o original tem a feature).
 9. **Docs:** business-rules, architecture, design-system, este arquivo, README; commit `feat:`.
 
 ## Ao terminar uma tarefa
 
-1. `bun run lint`, `bun run typecheck` e `bun test` passando (e `bun run e2e` se mexeu em tela).
+1. `bun run lint`, `bun run typecheck` e `bun test` passando (e `bun run e2e` + `bun run checkup`
+   se mexeu em tela).
 2. Docs atualizados se regra/decisão mudou.
 3. `PROGRESS.md` atualizado se a tarefa faz parte de uma etapa.

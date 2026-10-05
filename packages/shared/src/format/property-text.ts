@@ -45,8 +45,8 @@ export function propertyAttributesLine(p: {
 
 /** "Condo. + IPTU R$ 2.350" ou "Sem condomínio e IPTU" quando a soma é 0. */
 export function monthlyCostLabel(monthlyCost: number): string {
-  // Como no original: "R$ 1.245 Condo. + IPTU" (valor antes do rótulo).
-  return monthlyCost > 0 ? `${formatBRL(monthlyCost)} Condo. + IPTU` : "Sem condomínio e IPTU";
+  // Como no original: "R$ 1.245 Condo. + IPTU" (valor antes do rótulo), inclusive "R$ 0".
+  return `${formatBRL(monthlyCost)} Condo. + IPTU`;
 }
 
 /** Endereço público — nunca inclui número nem complemento: "Rua João Moura, Pinheiros · São Paulo". */

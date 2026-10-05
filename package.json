@@ -21,7 +21,8 @@
     "codegen": "bun run --filter @qa/api --filter @qa/web codegen",
     "bench": "bun run --filter @qa/api bench",
     "e2e": "bun run --filter @qa/web e2e",
-    "visual": "cd apps/web && bun e2e/visual.ts"
+    "visual": "cd apps/web && bun e2e/visual.ts",
+    "checkup": "cd apps/web && bun e2e/checkup.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

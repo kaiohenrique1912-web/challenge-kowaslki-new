@@ -2,7 +2,9 @@ import type { AmenityCode } from "../domain/amenities.ts";
 import type { PropertyType } from "../domain/property.ts";
 import {
   type BoundingBox,
+  DEFAULT_MIN_COUNTS,
   DEFAULT_SORT,
+  FILTER_RANGE_BOUNDS,
   type LatLng,
   type PublishedWithin,
   type SortOrder,
@@ -59,17 +61,41 @@ export const EMPTY_SEARCH_STATE: SearchState = {
   sort: DEFAULT_SORT,
 };
 
-/** Remove chaves vazias (undefined, faixas sem lados, listas vazias). */
+/** Tira os lados da faixa iguais aos limites do painel (= sem limite). */
+function trimRange(range: Range, bounds?: { min: number; max: number }): Range {
+  if (!bounds) return range;
+  return {
+    ...(range.min !== undefined && range.min > bounds.min && { min: range.min }),
+    ...(range.max !== undefined && range.max < bounds.max && { max: range.max }),
+  };
+}
+
+/**
+ * Remove o que não filtra nada: chaves vazias, faixas sem lados, listas vazias, lados de faixa
+ * iguais aos limites do painel (`FILTER_RANGE_BOUNDS`) e os mínimos padrão "1+ quartos" e
+ * "1+ banheiros" (`DEFAULT_MIN_COUNTS`).
+ */
 export function normalizeFilters(filters: PropertyFilters): PropertyFilters {
   const result: PropertyFilters = {};
   for (const [key, value] of Object.entries(filters) as [keyof PropertyFilters, unknown][]) {
     if (value === undefined || value === null) continue;
     if (Array.isArray(value) && value.length === 0) continue;
-    if (typeof value === "object" && !Array.isArray(value)) {
-      const range = value as Range;
-      if (range.min === undefined && range.max === undefined) continue;
+    if (
+      key in DEFAULT_MIN_COUNTS &&
+      value === DEFAULT_MIN_COUNTS[key as keyof typeof DEFAULT_MIN_COUNTS]
+    ) {
+      continue;
     }
-    (result as Record<string, unknown>)[key] = value;
+    let stored = value;
+    if (typeof value === "object" && !Array.isArray(value)) {
+      const range = trimRange(
+        value as Range,
+        FILTER_RANGE_BOUNDS[key as keyof typeof FILTER_RANGE_BOUNDS],
+      );
+      if (range.min === undefined && range.max === undefined) continue;
+      stored = range;
+    }
+    (result as Record<string, unknown>)[key] = stored;
   }
   return result;
 }

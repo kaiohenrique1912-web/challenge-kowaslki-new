@@ -13,7 +13,7 @@
   box-shadow: var(--qa-shadow-map);
   cursor: pointer;
   transition:
-    transform var(--qa-duration-fast) ease,
+    scale var(--qa-duration-fast) ease,
     background-color var(--qa-duration-fast) ease,
     color var(--qa-duration-fast) ease;
 }
@@ -36,9 +36,17 @@
   font-size: var(--qa-font-size-xs);
 }
 
-.qa-map-cluster:hover,
-.qa-map-cluster--highlighted {
-  transform: scale(1.12);
+/* Mouse em cima: só escurece um pouco, sem mudar de tamanho nem de lugar (como no original). */
+.qa-map-cluster:hover {
+  background: var(--qa-color-surface-hover);
+  border-color: var(--qa-color-surface-hover);
+}
+
+/* Card da lista sob o mouse: a bolinha dele fica azul. Use `scale` (não `transform`): no mapa
+   o marcador já usa transform para se centralizar no ponto. */
+.qa-map-cluster--highlighted,
+.qa-map-cluster--highlighted:hover {
+  scale: 1.12;
   background: var(--qa-color-primary);
   border-color: var(--qa-color-primary);
   color: var(--qa-color-on-primary);

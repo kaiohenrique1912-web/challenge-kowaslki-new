@@ -6,7 +6,7 @@ import {
   PROPERTY_TYPE_PLURAL_LABELS,
   type PropertyType,
 } from "../domain/property.ts";
-import { PUBLISHED_WITHIN_LABELS } from "../domain/search.ts";
+import { DEFAULT_MIN_COUNTS, PUBLISHED_WITHIN_LABELS } from "../domain/search.ts";
 import { formatArea, pluralize } from "../format/property-text.ts";
 import { normalizeFilters, type PropertyFilters, type Range } from "./state.ts";
 
@@ -104,9 +104,20 @@ export function removeActiveFilter(filters: PropertyFilters, key: string): Prope
   return normalizeFilters(rest);
 }
 
-/** Chips rápidos da barra de filtros, na ordem do original, e as chaves que cada um controla. */
+/**
+ * Primeiros chips da barra, antes dos filtros: tipo de negócio e lançamentos (como no original).
+ * Aluguel e lançamentos estão fora do escopo — o web mostra o aviso.
+ */
+export const BUSINESS_CHIP_LABEL = "Comprar";
+export const LAUNCHES_CHIP_LABEL = "Lançamentos";
+
+/**
+ * Chips rápidos de filtro, na ordem do original (conferida ao vivo com `bun run checkup`), e as
+ * chaves que cada um controla.
+ */
 export const QUICK_FILTERS = {
-  price: { name: "Valor", keys: ["price"] },
+  price: { name: "Valor do imóvel", keys: ["price"] },
+  monthlyCost: { name: "Condomínio + IPTU", keys: ["monthlyCost"] },
   types: { name: "Tipos de imóvel", keys: ["types"] },
   bedrooms: { name: "Quartos", keys: ["minBedrooms"] },
   parking: { name: "Vagas de garagem", keys: ["minParkingSpaces"] },
@@ -125,16 +136,19 @@ function quickFilterValue(id: QuickFilterId, f: PropertyFilters): string | undef
   switch (id) {
     case "price":
       return f.price && describeRange(f.price, formatCompactBRL);
+    case "monthlyCost":
+      return f.monthlyCost && describeRange(f.monthlyCost, formatCompactBRL);
     case "types":
       return f.types?.length ? describeTypes(f.types) : undefined;
+    // Sem filtro, quartos e banheiros mostram o mínimo padrão já marcado ("1+ quartos").
     case "bedrooms":
-      return f.minBedrooms === undefined ? undefined : describeMin.bedrooms(f.minBedrooms);
+      return describeMin.bedrooms(f.minBedrooms ?? DEFAULT_MIN_COUNTS.minBedrooms);
     case "parking":
       return f.minParkingSpaces === undefined
         ? undefined
         : describeMin.parkingSpaces(f.minParkingSpaces);
     case "bathrooms":
-      return f.minBathrooms === undefined ? undefined : describeMin.bathrooms(f.minBathrooms);
+      return describeMin.bathrooms(f.minBathrooms ?? DEFAULT_MIN_COUNTS.minBathrooms);
     case "area":
       return f.area && describeRange(f.area, formatArea);
     case "furnished":

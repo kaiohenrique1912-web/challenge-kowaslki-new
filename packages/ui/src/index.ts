@@ -81,14 +81,15 @@ export {
   FilterPanel,
   type FilterPanelProps,
   type FilterSectionProps,
+  InvestmentFilter,
   MinCountFilter,
   MonthlyCostFilter,
   PriceFilter,
   PropertyTypesFilter,
   PublishedWithinFilter,
   RANGE_SCALES,
-  RentedFilter,
   YesNoFilter,
+  type YieldSortProps,
 } from "./domain/FilterPanel/FilterPanel.tsx";
 export {
   formatClusterCount,

@@ -78,9 +78,19 @@ export const HOME_PRICE_MAX_OPTIONS = [
   300_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 3_000_000, 5_000_000,
 ] as const;
 
-/** Escalas dos sliders de faixa do painel de filtros (os campos de texto aceitam qualquer valor). */
-export const FILTER_SLIDER_SCALES = {
-  price: { max: 5_000_000, step: 50_000 },
-  monthlyCost: { max: 10_000, step: 100 },
-  area: { max: 1_000, step: 10 },
+/**
+ * Limites das faixas do painel de filtros, iguais aos do original: os campos já aparecem
+ * preenchidos com eles ("150.000" a "20.000.000") e o slider vai de um ao outro. Um lado igual ao
+ * limite = sem filtro naquele lado (`normalizeFilters` remove).
+ */
+export const FILTER_RANGE_BOUNDS = {
+  price: { min: 150_000, max: 20_000_000, step: 50_000 },
+  monthlyCost: { min: 0, max: 15_000, step: 100 },
+  area: { min: 20, max: 1_000, step: 10 },
 } as const;
+
+/**
+ * Mínimos que já vêm marcados no original: "1+ quartos" e "1+ banheiros" (sem opção "Tanto
+ * faz"). 1+ equivale a não filtrar (todo imóvel tem banheiro; studio conta como 1 cômodo).
+ */
+export const DEFAULT_MIN_COUNTS = { minBedrooms: 1, minBathrooms: 1 } as const;

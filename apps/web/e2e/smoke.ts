@@ -98,10 +98,10 @@ await step("hover no card destaca o mapa", async () => {
 });
 
 await step("filtro rapido de quartos", async () => {
-  await clickButton(page, "Quartos", ".qa-filter-bar__chips");
-  await page.waitForSelector('[role="dialog"][aria-label="Quartos"]');
+  await clickButton(page, "1+ quartos", ".qa-filter-bar__chips"); // "1+" já vem marcado
+  await page.waitForSelector('[role="dialog"][aria-label="1+ quartos"]');
   await settle(page);
-  await page.click('[role="dialog"][aria-label="Quartos"] [aria-label="3 ou mais"]');
+  await page.click('[role="dialog"][aria-label="1+ quartos"] [aria-label="3 ou mais"]');
   await page.waitForFunction(
     () => /Ver [\d.]+ imóve/.test(document.querySelector(".qa-popover__footer")?.textContent ?? ""),
     undefined,

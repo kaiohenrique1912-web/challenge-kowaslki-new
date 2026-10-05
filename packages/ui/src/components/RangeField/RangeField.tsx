@@ -22,6 +22,13 @@ export type RangeFieldProps = {
   /** Mensagem de erro (ex.: mínimo maior que o máximo, vinda da validação de `shared`). */
   error?: string;
   showSlider?: boolean;
+  /**
+   * Campos vazios mostram os limites do slider ("150.000" / "20.000.000"), como no original;
+   * digitar o próprio limite também conta como "sem limite" (`null`).
+   */
+  fillWithBounds?: boolean;
+  /** Rótulos dos campos (padrão "Mínimo"/"Máximo"; área usa "Mínima"/"Máxima"). */
+  fieldLabels?: [string, string];
   className?: string;
 };
 
@@ -47,8 +54,15 @@ export function RangeField({
   formatValue = (v) => v.toLocaleString("pt-BR"),
   error,
   showSlider = true,
+  fillWithBounds = false,
+  fieldLabels = ["Mínimo", "Máximo"],
   className,
 }: RangeFieldProps) {
+  const shown = (v: number | null, bound: number) => display(v ?? (fillWithBounds ? bound : null));
+  const parse = (text: string, bound: number) => {
+    const n = parseDigits(text);
+    return fillWithBounds && n === bound ? null : n;
+  };
   const groupId = useId();
   const errorId = `${groupId}-error`;
   const sliderValue: [number, number] = [
@@ -64,23 +78,25 @@ export function RangeField({
       <legend className="qa-range-field__legend">{label}</legend>
       <div className="qa-range-field__inputs">
         <Input
-          label="Mínimo"
+          label={fieldLabels[0]}
           prefix={prefix}
           suffix={suffix}
           inputMode="numeric"
           placeholder="Sem mínimo"
-          value={display(value.min)}
-          onChange={(e) => onChange({ ...value, min: parseDigits(e.target.value) })}
+          value={shown(value.min, sliderMin)}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => onChange({ ...value, min: parse(e.target.value, sliderMin) })}
           invalid={Boolean(error)}
         />
         <Input
-          label="Máximo"
+          label={fieldLabels[1]}
           prefix={prefix}
           suffix={suffix}
           inputMode="numeric"
           placeholder="Sem máximo"
-          value={display(value.max)}
-          onChange={(e) => onChange({ ...value, max: parseDigits(e.target.value) })}
+          value={shown(value.max, sliderMax)}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => onChange({ ...value, max: parse(e.target.value, sliderMax) })}
           invalid={Boolean(error)}
         />
       </div>

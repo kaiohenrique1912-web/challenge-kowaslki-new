@@ -56,6 +56,7 @@ http://localhost:4000/graphql.
 |---|---|
 | `bun test` | Testes de todos os pacotes (regras, API, seed, design system) |
 | `bun run e2e` | Com o `dev` rodando: abre o Chrome/Edge instalado e percorre 24 fluxos reais |
+| `bun run checkup` | Com o `dev` rodando: compara com o **QuintoAndar ao vivo** (ordem dos filtros, valores padrão, fontes, hover do mapa, teclado) → `apps/web/e2e/checkup/report.md` |
 | `bun run visual` | Com o `dev` rodando: compara o site com os prints do original (imagens lado a lado em `apps/web/e2e/visual/`) |
 | `bun run storybook` | Catálogo do design system em http://localhost:6006 |
 | `bun run bench` | Mede a velocidade das buscas com os 60 mil imóveis |

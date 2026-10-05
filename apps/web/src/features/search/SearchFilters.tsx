@@ -1,6 +1,9 @@
 import {
+  BUSINESS_CHIP_LABEL,
   CITY,
   countActiveFilters,
+  DEFAULT_SORT,
+  LAUNCHES_CHIP_LABEL,
   type PropertyFilters,
   pluralize,
   QUICK_FILTER_IDS,
@@ -19,13 +22,16 @@ import {
   FilterBar,
   FilterPanel,
   MinCountFilter,
+  MonthlyCostFilter,
   PriceFilter,
   PropertyTypesFilter,
   type QuickFilter,
+  SegmentedControl,
   YesNoFilter,
 } from "@qa/ui";
 import { type ReactNode, useState } from "react";
 import { useDebouncedValue } from "../../lib/hooks.ts";
+import { useOutOfScope } from "../layout/out-of-scope.tsx";
 import { SearchAlertButton } from "../search-alerts/SearchAlertButton.tsx";
 import { LocationSearch } from "./LocationSearch.tsx";
 import { type NeighborhoodInfo, useResultCount } from "./queries.ts";
@@ -45,6 +51,9 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
   const [openFilter, setOpenFilter] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [draft, setDraft] = useState<PropertyFilters>(state.filters);
+  /** "Ordenar pelo maior retorno com aluguel" do painel (é ordenação, não filtro). */
+  const [sortByYield, setSortByYield] = useState(false);
+  const notAvailable = useOutOfScope();
 
   const editing = openFilter !== null || panelOpen;
   const draftErrors = validatePropertyFilters(draft);
@@ -55,9 +64,20 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
   );
   const count = useResultCount(draftApiFilters, editing && !hasErrors);
 
-  const startEditing = () => setDraft(state.filters);
+  const startEditing = () => {
+    setDraft(state.filters);
+    setSortByYield(state.sort === "RENTAL_YIELD_DESC");
+  };
   const apply = () => {
-    setState((s) => ({ ...s, filters: draft }));
+    setState((s) => ({
+      ...s,
+      filters: draft,
+      sort: sortByYield
+        ? "RENTAL_YIELD_DESC"
+        : s.sort === "RENTAL_YIELD_DESC"
+          ? DEFAULT_SORT
+          : s.sort,
+    }));
     setOpenFilter(null);
     setPanelOpen(false);
   };
@@ -94,6 +114,7 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
   const sectionProps = { value: draft, onChange: setDraft };
   const panels: Record<QuickFilterId, ReactNode> = {
     price: <PriceFilter {...sectionProps} />,
+    monthlyCost: <MonthlyCostFilter {...sectionProps} />,
     types: <PropertyTypesFilter {...sectionProps} />,
     bedrooms: <MinCountFilter field="bedrooms" {...sectionProps} />,
     parking: <MinCountFilter field="parkingSpaces" {...sectionProps} />,
@@ -103,12 +124,41 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
     nearSubway: <YesNoFilter field="nearSubway" {...sectionProps} />,
     suites: <MinCountFilter field="suites" {...sectionProps} />,
   };
-  const quickFilters: QuickFilter[] = QUICK_FILTER_IDS.map((id) => ({
-    id,
-    ...quickFilterLabel(id, state.filters),
-    panel: panels[id],
-    panelFooter: quickFooter(id),
-  }));
+  // Como no original, a barra começa com "Comprar" (tipo de negócio) e "Lançamentos" — aluguel e
+  // lançamentos estão fora do escopo e mostram o aviso.
+  const leadingChips: QuickFilter[] = [
+    {
+      id: "business",
+      label: BUSINESS_CHIP_LABEL,
+      active: true,
+      panel: (
+        <SegmentedControl
+          label="Tipo de negócio"
+          value="buy"
+          onChange={(v) => {
+            if (v === "rent") {
+              setOpenFilter(null);
+              notAvailable("Alugar");
+            }
+          }}
+          options={[
+            { value: "rent", label: "Alugar" },
+            { value: "buy", label: "Comprar" },
+          ]}
+        />
+      ),
+    },
+    { id: "launches", label: LAUNCHES_CHIP_LABEL, active: false },
+  ];
+  const quickFilters: QuickFilter[] = [
+    ...leadingChips,
+    ...QUICK_FILTER_IDS.map((id) => ({
+      id,
+      ...quickFilterLabel(id, state.filters),
+      panel: panels[id],
+      panelFooter: quickFooter(id),
+    })),
+  ];
 
   return (
     <>
@@ -126,6 +176,10 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
         quickFilters={quickFilters}
         openFilterId={openFilter}
         onOpenFilterChange={(id) => {
+          if (id === "launches") {
+            notAvailable(LAUNCHES_CHIP_LABEL);
+            return;
+          }
           if (id) startEditing();
           setOpenFilter(id);
         }}
@@ -145,14 +199,24 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
         hideTitle
         footer={
           <>
-            <Button variant="link" onClick={() => setDraft({})}>
+            <Button
+              variant="link"
+              onClick={() => {
+                setDraft({});
+                setSortByYield(false);
+              }}
+            >
               Limpar
             </Button>
             {seeResultsButton("md")}
           </>
         }
       >
-        <FilterPanel {...sectionProps} />
+        <FilterPanel
+          {...sectionProps}
+          sortByYield={sortByYield}
+          onSortByYieldChange={setSortByYield}
+        />
       </Drawer>
     </>
   );

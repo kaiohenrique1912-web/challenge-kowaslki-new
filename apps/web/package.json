@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "codegen": "bunx --bun graphql-codegen --config codegen.ts",
     "e2e": "bun e2e/smoke.ts",
-    "visual": "bun e2e/visual.ts"
+    "visual": "bun e2e/visual.ts",
+    "checkup": "bun e2e/checkup.ts"
   },
   "dependencies": {
     "@qa/shared": "workspace:*",

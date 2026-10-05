@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useId, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { Icon, type IconName } from "../../icons/Icon.tsx";
 import { cx } from "../../utils/cx.ts";
 import { Input } from "../Input/Input.tsx";
@@ -56,6 +56,14 @@ export function Combobox({
   const typedEnough = value.trim().length >= minChars;
   const open = focused && !dismissed && typedEnough;
   const activeOption = open ? options[active] : undefined;
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // A lista rola junto com ↓/↑: a opção ativa fica sempre visível.
+  useEffect(() => {
+    if (!open || !activeOption) return;
+    const element = listRef.current?.querySelector<HTMLElement>(`[aria-selected="true"]`);
+    element?.scrollIntoView({ block: "nearest" });
+  }, [open, activeOption]);
 
   const choose = (option: ComboboxOption) => {
     onSelect(option);
@@ -106,6 +114,7 @@ export function Combobox({
         onKeyDown={onKeyDown}
       />
       <div
+        ref={listRef}
         id={listId}
         role="listbox"
         aria-label={label}

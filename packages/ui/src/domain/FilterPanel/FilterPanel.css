@@ -37,3 +37,16 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--qa-space-4) var(--qa-space-6);
 }
+
+.qa-filter-panel__group {
+  gap: var(--qa-space-4);
+}
+
+/* "Mostrar rendimento mensal com aluguel" com o interruptor logo depois do texto. */
+.qa-filter-panel .qa-filter-panel__toggle {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--qa-space-6);
+}

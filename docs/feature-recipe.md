@@ -95,6 +95,9 @@ Pasta `apps/api/src/modules/<feature>/`:
   seletores por papel/rótulo: `page.getByRole("button", { name: "…" })`).
 - Com `bun run dev` rodando: `bun run e2e` (todos devem passar) e confira os prints em
   `apps/web/e2e/screenshots/`.
+- A feature existe no site do QuintoAndar? Crie uma **sonda** em `apps/web/e2e/checkup.ts`
+  (skill `checkup-original`, passo 3) e rode `bun run checkup <sonda>` até ficar ✅ ou
+  classificada. O hook de Stop do projeto cobra isso quando telas mudam.
 - A feature tem print do original? Adicione uma cena em `apps/web/e2e/visual.ts` e rode
   `bun run visual <cena>` (skill `/conferir-visual`).
 
@@ -131,6 +134,8 @@ bun run e2e        # com bun run dev rodando
 - [ ] Acessível: todo campo com rótulo, botões com nome, navegação por teclado.
 - [ ] Ponto de entrada ligado (menu/aba/botão) — sem aviso de "fora do escopo" sobrando.
 - [ ] `lint`, `typecheck`, `bun test` e `bun run e2e` passando; prints conferidos.
+- [ ] `bun run checkup` rodado; sonda nova para a feature (se o original tem); diferenças
+      corrigidas ou registradas.
 - [ ] Docs atualizados no mesmo commit.
 
 ## Exemplo resolvido: alertas de busca ("Criar alerta de imóvel")

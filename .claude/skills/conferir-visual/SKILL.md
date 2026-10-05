@@ -6,6 +6,9 @@ argument-hint: "[cena, ex.: busca | detalhe | filtros | home]"
 
 # Conferir visual com o original
 
+> Compara com **prints parados**. Para comparar com o **site ao vivo** (comportamento, valores
+> padrão, ordem, tipografia medida), use também a skill `checkup-original` (`bun run checkup`).
+
 Quem compara é você, lendo imagens — não um diff de pixels. Dados, fotos e o mapa (Google no
 original, OpenStreetMap aqui) nunca vão bater; o que precisa bater é **layout, tamanhos,
 tipografia, cores, textos, ordem e presença dos componentes**.

@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   activeFilterChips,
   formatCompactBRL,
+  QUICK_FILTER_IDS,
+  QUICK_FILTERS,
   quickFilterLabel,
   removeActiveFilter,
   searchResultsHeading,
@@ -54,7 +56,25 @@ describe("describe search", () => {
   });
 
   test("quick filter labels", () => {
-    expect(quickFilterLabel("bedrooms", {})).toEqual({ label: "Quartos", active: false });
+    // Quartos e banheiros já vêm com "1+" marcado, como no original.
+    expect(quickFilterLabel("bedrooms", {})).toEqual({ label: "1+ quartos", active: true });
+    expect(quickFilterLabel("bathrooms", {})).toEqual({ label: "1+ banheiros", active: true });
+    expect(quickFilterLabel("price", {})).toEqual({ label: "Valor do imóvel", active: false });
+    expect(quickFilterLabel("monthlyCost", { monthlyCost: { max: 2_000 } }).label).toBe(
+      "Até R$ 2 mil",
+    );
+    expect(QUICK_FILTER_IDS.map((id) => QUICK_FILTERS[id].name)).toEqual([
+      "Valor do imóvel",
+      "Condomínio + IPTU",
+      "Tipos de imóvel",
+      "Quartos",
+      "Vagas de garagem",
+      "Banheiros",
+      "Área",
+      "Mobiliado",
+      "Próximo ao metrô",
+      "Suítes",
+    ]);
     expect(quickFilterLabel("bedrooms", { minBedrooms: 1 })).toEqual({
       label: "1+ quartos",
       active: true,

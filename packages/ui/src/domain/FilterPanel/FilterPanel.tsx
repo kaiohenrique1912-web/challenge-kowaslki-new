@@ -3,7 +3,8 @@ import {
   AMENITY_CATEGORIES,
   AMENITY_CATEGORY_LABELS,
   type AmenityCode,
-  FILTER_SLIDER_SCALES,
+  DEFAULT_MIN_COUNTS,
+  FILTER_RANGE_BOUNDS,
   formatBRL,
   MIN_COUNT_FILTER_MAX,
   normalizeFilters,
@@ -45,8 +46,8 @@ const fromRangeValue = (range: RangeValue): Range | undefined => {
   return result.min === undefined && result.max === undefined ? undefined : result;
 };
 
-/** Escalas dos sliders — regra de `shared` (FILTER_SLIDER_SCALES), reexportada por conveniência. */
-export const RANGE_SCALES = FILTER_SLIDER_SCALES;
+/** Limites das faixas — regra de `shared` (FILTER_RANGE_BOUNDS), reexportada por conveniência. */
+export const RANGE_SCALES = FILTER_RANGE_BOUNDS;
 
 export function PriceFilter({ value, onChange }: FilterSectionProps) {
   return (
@@ -55,9 +56,10 @@ export function PriceFilter({ value, onChange }: FilterSectionProps) {
       prefix="R$"
       value={toRangeValue(value.price)}
       onChange={(r) => onChange(patch(value, { price: fromRangeValue(r) }))}
-      sliderMin={0}
+      sliderMin={RANGE_SCALES.price.min}
       sliderMax={RANGE_SCALES.price.max}
       step={RANGE_SCALES.price.step}
+      fillWithBounds
       formatValue={formatBRL}
       error={validatePropertyFilters(value).price}
     />
@@ -71,9 +73,10 @@ export function MonthlyCostFilter({ value, onChange }: FilterSectionProps) {
       prefix="R$"
       value={toRangeValue(value.monthlyCost)}
       onChange={(r) => onChange(patch(value, { monthlyCost: fromRangeValue(r) }))}
-      sliderMin={0}
+      sliderMin={RANGE_SCALES.monthlyCost.min}
       sliderMax={RANGE_SCALES.monthlyCost.max}
       step={RANGE_SCALES.monthlyCost.step}
+      fillWithBounds
       formatValue={formatBRL}
       error={validatePropertyFilters(value).monthlyCost}
     />
@@ -87,9 +90,11 @@ export function AreaFilter({ value, onChange }: FilterSectionProps) {
       suffix="m²"
       value={toRangeValue(value.area)}
       onChange={(r) => onChange(patch(value, { area: fromRangeValue(r) }))}
-      sliderMin={0}
+      sliderMin={RANGE_SCALES.area.min}
       sliderMax={RANGE_SCALES.area.max}
       step={RANGE_SCALES.area.step}
+      fillWithBounds
+      fieldLabels={["Mínima", "Máxima"]}
       formatValue={(v) => `${v.toLocaleString("pt-BR")} m²`}
       error={validatePropertyFilters(value).area}
     />
@@ -140,11 +145,17 @@ export function MinCountFilter({
   onChange,
 }: FilterSectionProps & { field: keyof typeof MIN_COUNT_FIELDS }) {
   const config = MIN_COUNT_FIELDS[field];
+  // Quartos e banheiros: sem "Tanto faz", com "1+" já marcado (DEFAULT_MIN_COUNTS), como no original.
+  const defaultMin =
+    config.key in DEFAULT_MIN_COUNTS
+      ? DEFAULT_MIN_COUNTS[config.key as keyof typeof DEFAULT_MIN_COUNTS]
+      : null;
   return (
     <CounterSelector
       label={config.label}
       max={config.max}
-      value={value[config.key] ?? null}
+      allowAny={defaultMin === null}
+      value={value[config.key] ?? defaultMin}
       onChange={(n) => onChange(patch(value, { [config.key]: n ?? undefined }))}
     />
   );
@@ -189,16 +200,48 @@ export function YesNoFilter({
   );
 }
 
-export function RentedFilter({ value, onChange }: FilterSectionProps) {
+/** Ordenar por retorno com aluguel é ordenação, não filtro: o dono do painel controla. */
+export type YieldSortProps = {
+  sortByYield?: boolean;
+  onSortByYieldChange?: (checked: boolean) => void;
+};
+
+/**
+ * "Compra para investir" (como no original): o interruptor "Mostrar rendimento mensal com
+ * aluguel" liga/desliga as duas opções de baixo juntas.
+ */
+export function InvestmentFilter({
+  value,
+  onChange,
+  sortByYield = false,
+  onSortByYieldChange,
+}: FilterSectionProps & YieldSortProps) {
+  const rented = value.rented === true;
   return (
     <div className="qa-filter-panel__group">
       <span className="qa-filter-panel__legend">Compra para investir</span>
       <Toggle
-        label="Compre já alugado"
-        description="Só imóveis vendidos com inquilino"
-        checked={value.rented === true}
-        onChange={(checked) => onChange(patch(value, { rented: checked || undefined }))}
+        label="Mostrar rendimento mensal com aluguel"
+        className="qa-filter-panel__toggle"
+        checked={rented && sortByYield}
+        onChange={(checked) => {
+          onChange(patch(value, { rented: checked || undefined }));
+          onSortByYieldChange?.(checked);
+        }}
       />
+      <div className="qa-filter-panel__grid">
+        <Checkbox
+          label="Ordenar pelo maior retorno com aluguel"
+          checked={sortByYield}
+          disabled={!onSortByYieldChange}
+          onChange={(e) => onSortByYieldChange?.(e.target.checked)}
+        />
+        <Checkbox
+          label="Mostrar somente imóveis já alugados"
+          checked={rented}
+          onChange={(e) => onChange(patch(value, { rented: e.target.checked || undefined }))}
+        />
+      </div>
     </div>
   );
 }
@@ -238,14 +281,22 @@ function Section({ children }: { children: ReactNode }) {
   return <div className="qa-filter-panel__section">{children}</div>;
 }
 
-export type FilterPanelProps = FilterSectionProps & { className?: string };
+export type FilterPanelProps = FilterSectionProps & YieldSortProps & { className?: string };
 
 /**
- * Todos os filtros de atributos, na ordem do painel "Mais filtros" do original. Controlado:
- * recebe e devolve `PropertyFilters` (@qa/shared). Use dentro de um Drawer; o rodapé
- * ("Limpar" / "Ver N imóveis") é do dono.
+ * Todos os filtros de atributo, na ordem do "Mais filtros" do original (conferida ao vivo com
+ * `bun run checkup`). Controlado: recebe e devolve `PropertyFilters` (@qa/shared); a ordenação
+ * por retorno vem de fora (`sortByYield`). Use dentro de um Drawer; o rodapé é do dono.
+ * Data de publicação e Exclusivos existem como filtros (URL/API), mas o original não os mostra
+ * na compra — por isso ficam fora daqui (seções exportadas para quem precisar).
  */
-export function FilterPanel({ value, onChange, className }: FilterPanelProps) {
+export function FilterPanel({
+  value,
+  onChange,
+  sortByYield,
+  onSortByYieldChange,
+  className,
+}: FilterPanelProps) {
   const props = { value, onChange };
   return (
     <div className={cx("qa-filter-panel", className)}>
@@ -259,12 +310,9 @@ export function FilterPanel({ value, onChange, className }: FilterPanelProps) {
         <PropertyTypesFilter {...props} />
       </Section>
       <Section>
-        <PublishedWithinFilter {...props} />
-      </Section>
-      <Section>
         <MinCountFilter field="bedrooms" {...props} />
-        <MinCountFilter field="bathrooms" {...props} />
         <MinCountFilter field="parkingSpaces" {...props} />
+        <MinCountFilter field="bathrooms" {...props} />
       </Section>
       <Section>
         <AreaFilter {...props} />
@@ -272,11 +320,14 @@ export function FilterPanel({ value, onChange, className }: FilterPanelProps) {
       <Section>
         <YesNoFilter field="furnished" {...props} />
         <YesNoFilter field="nearSubway" {...props} />
-        <YesNoFilter field="exclusive" {...props} />
         <MinCountFilter field="suites" {...props} />
       </Section>
       <Section>
-        <RentedFilter {...props} />
+        <InvestmentFilter
+          {...props}
+          sortByYield={sortByYield}
+          onSortByYieldChange={onSortByYieldChange}
+        />
       </Section>
       <Section>
         <AmenitiesFilter {...props} />

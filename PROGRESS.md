@@ -51,8 +51,10 @@
   `docs/feature-recipe.md` (receita + checklist + exemplo resolvido), skills `nova-feature`,
   `regras-imoveis` e `conferir-visual` em `.claude/skills/`; regras reutilizáveis
   centralizadas (`PROPERTY_FIELD_LABELS`, `findNeighborhoodForPoint`, `property-row.ts`).
-  E2E migrado para Playwright (24 fluxos). 189 testes. Próximo: teste one-shot do cadastro em
-  sessão nova.
+  E2E migrado para Playwright (24 fluxos). Check-up contra o site **ao vivo** (`bun run checkup`,
+  skill `checkup-original`, hook de Stop que cobra o check-up quando telas mudam): corrigidos o
+  hover que tremia, a rolagem do autocomplete, a ordem dos chips/painel, os valores padrão e
+  "Compra para investir". Próximo: teste one-shot do cadastro em sessão nova.
 
 ## Notas
 

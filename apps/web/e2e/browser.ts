@@ -39,3 +39,26 @@ export async function waitForResults(page: Page) {
     .waitFor({ timeout: 15_000 });
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
 }
+
+/** Monta uma imagem lado a lado (esquerda × direita, mesma largura de exibição). */
+export async function composeSideBySide(
+  browser: Browser,
+  opts: {
+    left: { label: string; path: string };
+    right: { label: string; path: string };
+    out: string;
+  },
+) {
+  const { readFileSync } = await import("node:fs");
+  const url = (path: string) =>
+    `data:${path.endsWith(".png") ? "image/png" : "image/jpeg"};base64,${readFileSync(path).toString("base64")}`;
+  const page = await browser.newPage({ viewport: { width: 1920, height: 800 } });
+  await page.setContent(`<!doctype html><body style="margin:0;font:600 18px system-ui;background:#fff">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:12px">
+      <div>${opts.left.label}</div><div>${opts.right.label}</div>
+      <img src="${url(opts.left.path)}" style="width:100%;outline:1px solid #ccc">
+      <img src="${url(opts.right.path)}" style="width:100%;outline:1px solid #ccc">
+    </div></body>`);
+  await page.screenshot({ path: opts.out, fullPage: true });
+  await page.close();
+}

@@ -91,16 +91,13 @@ const SCENES: Scene[] = [
     ],
   },
   {
-    name: "busca-bairro",
-    reference: "tela_apos_busca.jpeg",
-    referenceCrop: 722,
+    name: "busca-apartamentos",
+    reference: "tela_apos_busca_COMPRA.png",
     viewport: SCREEN,
-    setup: (page) => openSearch(page, "/comprar/imovel/barra-funda?quartos=3"),
+    setup: (page) => openSearch(page, "/comprar/imovel?tipos=apartamento"),
     checklist: [
-      "Campo de local com o bairro, chips ativos em azul-claro com o valor ('3+ quartos').",
-      "Subtítulo 'com 3 quartos à venda em Barra Funda, São Paulo, SP'.",
-      "Pino vermelho do bairro e clusters pequenos.",
-      "Ignorar: aluguel × venda (só compra no escopo).",
+      "Chips na ordem do original: Comprar, Lançamentos, Valor do imóvel, Condomínio + IPTU, Tipos…",
+      "Título 'N apartamentos' + 'à venda em São Paulo, SP'; chip 'Apartamento' sobre o mapa.",
     ],
   },
   {
@@ -124,25 +121,17 @@ const SCENES: Scene[] = [
       "Tiles: tons claros parecidos com o Google Maps (o original usa Google; nós, tiles abertos).",
     ],
   },
-  {
-    name: "mais-filtros-compra",
-    reference: "mais_filtros_compra.png",
-    viewport: { width: 1536, height: 708 },
-    setup: async (page) => {
-      await openSearch(page, "/comprar/imovel?tipos=apartamento&banheiros=1");
-      await openMoreFilters(page);
-    },
-    checklist: [
-      "Painel lateral à ESQUERDA, largura, botão X, rodapé 'Limpar' + 'Ver N imóveis'.",
-      "Seções 'Valor do imóvel' e 'Condomínio + IPTU': rótulos Mínimo/Máximo, campos com 'R$', slider.",
-    ],
-  },
+  // Os 8 prints do "Mais filtros" de compra, cada um rolado até uma seção.
   ...(
     [
-      ["mais-filtros-1", "mais_filtros1.jpeg", "Tipos de imóvel"],
-      ["mais-filtros-2", "mais_filtros2.jpeg", "Exclusivos QuintoAndar"],
-      ["mais-filtros-3", "mais_filtros3.jpeg", "Mobília"],
-      ["mais-filtros-4", "mais_filtros4.jpeg", "Eletrodomésticos"],
+      ["mais-filtros-1", "Mais_filtros1.png", null],
+      ["mais-filtros-2", "Mais_filtros2.png", "Tipos de imóvel"],
+      ["mais-filtros-3", "Mais_filtros3.png", "Banheiros"],
+      ["mais-filtros-4", "Mais_filtros4.png", "Suítes"],
+      ["mais-filtros-5", "Mais_filtros5.png", "Comodidades"],
+      ["mais-filtros-6", "Mais_filtros6.png", "Bem-estar"],
+      ["mais-filtros-7", "Mais_filtros7.png", "Acessibilidade"],
+      ["mais-filtros-8", "Mais_filtros8.png", "Eletrodomésticos"],
     ] as const
   ).map(
     ([name, reference, heading]): Scene => ({
@@ -150,15 +139,14 @@ const SCENES: Scene[] = [
       reference,
       viewport: SCREEN,
       setup: async (page) => {
-        await openSearch(page, "/comprar/imovel/barra-funda?quartos=3");
+        await openSearch(page, "/comprar/imovel?tipos=apartamento");
         await openMoreFilters(page);
-        await scrollPanelTo(page, heading);
+        if (heading) await scrollPanelTo(page, heading);
       },
-      clip: ".qa-dialog--drawer .qa-dialog__panel",
       checklist: [
         "Títulos de seção (peso, tamanho), pílulas 'Tanto faz/1+/2+' (cor da selecionada), checkboxes em 2 colunas.",
         "Ordem e nomes das seções e dos itens.",
-        "Ignorar: Alugar/Comprar e 'Valor total/Aluguel' (só compra no escopo).",
+        "Ignorar: 'Alugar | Comprar' no topo e 'Tipos de lançamento' (fora do escopo).",
       ],
     }),
   ),
@@ -264,6 +252,8 @@ const SCENES: Scene[] = [
 
 /** Referências sem cena (para o report dizer por quê). */
 const NOT_COVERED: Record<string, string> = {
+  "tela_apos_busca_ALUGUEL.jpeg":
+    "busca de aluguel — fora do escopo (use tela_apos_busca_COMPRA.png).",
   "anunciar_imoveis.jpeg": "cadastro de imóveis — feature nova, ainda não existe (teste one-shot).",
   "exemplo_pergunta_extra1.jpeg": "onboarding por perguntas — fora do escopo.",
   "exemplo_pergunta_extra2.jpeg": "onboarding por perguntas — fora do escopo.",

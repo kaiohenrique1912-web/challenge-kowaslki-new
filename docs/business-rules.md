@@ -163,12 +163,33 @@ API é literal. **Na busca (comportamento do original, validado):**
   "Área desenhada no mapa" e o subtítulo vira "à venda na área desenhada no mapa". "Apagar
   desenho" volta para a cidade inteira; escolher um bairro/rua no campo apaga o desenho.
 
-### 4.4 Chips rápidos da barra de filtros
+### 4.4 Chips rápidos da barra e painel "Mais filtros" (conferidos ao vivo com `bun run checkup`)
 
-Na ordem do original (`QUICK_FILTERS` em shared): Valor, Tipos de imóvel, Quartos, Vagas de
-garagem, Banheiros, Área, Mobiliado, Próximo ao metrô, Suítes. O chip mostra o nome do filtro
-ou o valor escolhido ("1+ banheiros", "Mobiliado"), com setas ‹ › quando não cabem. Depois
-deles: "Mais filtros" (painel lateral à esquerda) e "Criar alerta de imóvel".
+**Chips**, na ordem do original: **Comprar** (selecionado; abre "Alugar | Comprar" — alugar fora
+do escopo), **Lançamentos** (fora do escopo, aviso), e os filtros de `QUICK_FILTERS` em shared:
+Valor do imóvel, Condomínio + IPTU, Tipos de imóvel, Quartos, Vagas de garagem, Banheiros, Área,
+Mobiliado, Próximo ao metrô, Suítes. O chip mostra o nome do filtro ou o valor escolhido, com
+setas ‹ › quando não cabem. Depois deles: "Mais filtros" (painel à esquerda) e "Criar alerta de
+imóvel".
+
+**Mínimos padrão:** "1+ quartos" e "1+ banheiros" já aparecem **marcados** (chip azul e pílula
+"1+" no painel, sem opção "Tanto faz") — `DEFAULT_MIN_COUNTS`. 1+ equivale a não filtrar
+(`normalizeFilters` remove; `quartos=1` na URL é ignorado). Vagas e suítes têm "Tanto faz".
+
+**Faixas com limites preenchidos** (`FILTER_RANGE_BOUNDS`): Valor do imóvel 150.000 – 20.000.000,
+Condomínio + IPTU 0 – 15.000, Área 20 – 1.000 m² ("Mínima"/"Máxima"). Os campos já mostram esses
+números; um lado igual ao limite = sem limite naquele lado.
+
+**Ordem do painel:** Valor do imóvel, Condomínio + IPTU, Tipos de imóvel, Quartos, Vagas de
+garagem, Banheiros, Área, Mobiliado, Próximo ao metrô, Suítes, **Compra para investir**, e as
+comodidades: Condomínio, Comodidades, Bem-estar, Mobílias, Acessibilidade, Eletrodomésticos,
+Cômodos. "Data de publicação" e "Exclusivos" continuam como filtros (URL/API), mas não aparecem
+no painel de compra — o original não mostra. "Tipos de lançamento" (Pronto para morar, Em
+construção, Na planta) existe no original e está **fora do escopo** (não temos esse dado).
+
+**Compra para investir:** interruptor "Mostrar rendimento mensal com aluguel" (liga/desliga as
+duas opções abaixo juntas), "Ordenar pelo maior retorno com aluguel" (ordenação
+`RENTAL_YIELD_DESC`) e "Mostrar somente imóveis já alugados" (filtro `rented`).
 
 ### 4.5 Alertas de busca ("Criar alerta de imóvel")
 
@@ -250,7 +271,7 @@ O card mostra **no máximo 2** badges, nesta ordem de prioridade: `EXCLUSIVE`, `
 
 ### 6.2 Valores exibidos
 - **Card:** preço de venda em destaque (`R$ 1.555.000`) + linha `R$ 2.350 Condo. + IPTU`
-  (`monthlyCost`, valor antes do rótulo, como no original). Se `monthlyCost = 0`: `Sem condomínio e IPTU`. (suposição)
+  (`monthlyCost`, valor antes do rótulo, como no original; com 0: `R$ 0 Condo. + IPTU`). Se `monthlyCost = 0`: `Sem condomínio e IPTU`. (suposição)
 - **Detalhe — card de preços:** `Venda`, `Condomínio` (`Não há` se 0), `IPTU` (`Isento` se 0)
   e linha `Condo. + IPTU` com a soma. Não existe "Total" somando preço de venda com mensais.
 - Atributos no card: `120 m² · 3 quartos · 2 vagas` (vagas omitidas se 0; `STUDIO` com 0

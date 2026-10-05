@@ -2,14 +2,15 @@ import type { PropertyType } from "./property.ts";
 
 /** Catálogo de comodidades. Fonte: docs/business-rules.md §3. Ordem = ordem do painel de filtros. */
 
+/** Na ordem do painel "Mais filtros" do original (conferida ao vivo com `bun run checkup`). */
 export const AMENITY_CATEGORIES = [
   "CONDOMINIUM",
   "FEATURES",
-  "FURNITURE",
   "WELLBEING",
+  "FURNITURE",
+  "ACCESSIBILITY",
   "APPLIANCES",
   "ROOMS",
-  "ACCESSIBILITY",
 ] as const;
 export type AmenityCategory = (typeof AMENITY_CATEGORIES)[number];
 

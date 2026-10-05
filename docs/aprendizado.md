@@ -803,3 +803,45 @@ No Claude Code: `/conferir-visual` depois de mudar uma tela, e `/nova-feature <d
 | Escala do dispositivo (DPR) | Quantos pixels da tela cabem em 1 pixel "do site"; 1,25 com o Windows em 125%. |
 | Polígono | Figura fechada de vários pontos; aqui, a área desenhada no mapa. |
 | One-shot | Pedir uma feature em uma única instrução e o agente entregar pronta. |
+
+## 8. Check-up contra o site ao vivo (complemento da Etapa 7)
+
+Em 10 minutos olhando o site você achou problemas que os prints não mostravam: uma bolinha do mapa que "sambava", a lista de sugestões que não acompanhava a seta ↓, campos de valor vazios. Por isso criamos um **check-up direto no site do QuintoAndar** (com autorização do QuintoAndar).
+
+### 8.1 Como funciona
+O comando `bun run checkup` abre o site real e o nosso no **mesmo estado** e roda as mesmas **sondas** nos dois. Uma sonda é um pequeno teste que **mede** algo em vez de só fotografar:
+- **Chips:** a ordem, o texto e quais aparecem marcados.
+- **"Mais filtros":** as seções, os números que já vêm nos campos e as opções marcadas.
+- **Tipografia:** fonte, tamanho e posição dos textos principais.
+- **Hover no mapa:** a posição da bolinha a cada quadro (60 vezes por segundo) com o mouse parado em cima. Se ela muda de lugar, está tremendo.
+- **Autocomplete:** desce com ↓ por todas as sugestões e verifica se a opção marcada continua visível.
+
+O resultado é uma tabela **Original × Nosso** com ✅ ou ❌ (`apps/web/e2e/checkup/report.md`), mais prints lado a lado.
+
+### 8.2 O que ele encontrou e foi corrigido
+| Problema | Causa | Correção |
+|---|---|---|
+| Bolinha do mapa "sambando" | No hover, o CSS trocava o `transform` (que centraliza o marcador no ponto) por um aumento de tamanho. A bolinha pulava ~20 px, saía de baixo do mouse, voltava… em loop. | Hover só deixa a bolinha cinza, sem crescer nem sair do lugar, como no original. A sonda mediu 36 px de deslocamento antes e 0 depois. |
+| Seta ↓ no autocomplete não acompanhava | A opção ativa mudava, mas a lista não rolava. | A lista rola junto (`scrollIntoView`). Sonda: opções 5, 6 e 7 escondidas antes, nenhuma depois. |
+| Chips em outra ordem | Prints de aluguel. | Agora a ordem é a da compra: Comprar, Lançamentos, Valor do imóvel, Condomínio + IPTU, Tipos de imóvel, 1+ quartos, Vagas, 1+ banheiros, Área, Mobiliado, Próximo ao metrô, Suítes. |
+| "1+ quartos"/"1+ banheiros" | No original já vêm marcados e não têm "Tanto faz". | Iguais ao original (1+ = não filtra). |
+| Campos de valor vazios | Mostrávamos "Sem mínimo". | Os campos já vêm com 150.000 – 20.000.000, 0 – 15.000 e 20 – 1.000 m². |
+| Ordem do painel | Data de publicação e Exclusivos não aparecem na compra; as comodidades estavam em outra ordem. | Mesma ordem e seções do original. |
+| "Compra para investir" | Tínhamos só "Compre já alugado". | Interruptor "Mostrar rendimento mensal com aluguel" + "Ordenar pelo maior retorno" + "Mostrar somente imóveis já alugados". |
+| Linha do condomínio | 13 px; com valor zero aparecia "Sem condomínio e IPTU". | 15 px; com zero aparece "R$ 0 Condo. + IPTU", como no original. |
+
+### 8.3 Faltando ou aceito
+- **Faltando:**
+  - **"Lançamentos":** o chip e a seção "Tipos de lançamento" (pronto para morar, em construção, na planta) existem no original, mas não temos esse dado. Por enquanto mostram o aviso de fora do escopo.
+  - **Atalhos e botão do autocomplete:** "Mais jeitos de buscar" ("Desenhe a área no mapa", "Perto de você") e o botão × para limpar o campo.
+- **Aceito:** os números das bolinhas. O original mostra uma amostra em cada bolinha (a soma das bolinhas não chega ao total), e o nosso mostra a contagem exata.
+
+### 8.4 Para não depender de alguém olhar
+- **Skill `checkup-original`:** explica como rodar, como classificar cada ❌ e como criar uma **sonda nova** quando uma feature nova for feita (por exemplo, o cadastro ganha uma sonda comparando com a página "Anunciar" do original).
+- **Hook de Stop:** quando o Claude Code vai encerrar uma resposta, um script confere se alguma tela mudou depois do último check-up. Se mudou, ele não deixa encerrar e pede o check-up. Funciona em qualquer sessão nova, depois do `/clear`, sem você pedir. Para não travar o agente, se ele já foi barrado uma vez, deixa encerrar (por exemplo, se o site original estiver fora do ar).
+
+| Termo | Significado |
+|---|---|
+| Sonda | Teste que mede a mesma coisa nos dois sites e compara os números. |
+| Hook | Comando que o Claude Code roda sozinho num momento combinado (aqui, ao encerrar a resposta). |
+| `transform` | Propriedade CSS que move, gira ou aumenta um elemento. Se duas regras disputam o mesmo `transform`, uma apaga a outra. |

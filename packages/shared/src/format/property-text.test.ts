@@ -35,7 +35,7 @@ describe("property texts", () => {
       "120 m² · Studio · 1 vaga",
     );
     expect(monthlyCostLabel(2_350)).toBe("R$ 2.350 Condo. + IPTU");
-    expect(monthlyCostLabel(0)).toBe("Sem condomínio e IPTU");
+    expect(monthlyCostLabel(0)).toBe("R$ 0 Condo. + IPTU");
     expect(publicAddress("Rua João Moura", "Pinheiros")).toBe(
       "Rua João Moura, Pinheiros · São Paulo",
     );

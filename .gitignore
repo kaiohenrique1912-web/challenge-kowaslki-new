@@ -30,3 +30,4 @@ Thumbs.db
 # prints do teste e2e
 apps/web/e2e/screenshots/
 apps/web/e2e/visual/
+apps/web/e2e/checkup/

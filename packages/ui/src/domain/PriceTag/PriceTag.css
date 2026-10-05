@@ -23,7 +23,7 @@
 }
 
 .qa-price--sm .qa-price__monthly {
-  font-size: var(--qa-font-size-sm);
+  font-size: var(--qa-font-size-md); /* 15 px, medido no original com bun run checkup */
 }
 
 .qa-price--lg .qa-price__sale {

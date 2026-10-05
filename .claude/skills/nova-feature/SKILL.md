@@ -61,9 +61,13 @@ bun test
 Depois, com o app no ar (`bun run dev` em segundo plano; espere `http://localhost:5173`
 responder), rode `bun run e2e` e **abra os prints** da feature em `apps/web/e2e/screenshots/`
 com Read. Prova = o usuário consegue fazer o fluxo pela tela e o efeito aparece (ex.: imóvel
-cadastrado aparece na busca). Se a feature tem print do original, rode a skill
-`conferir-visual` para ela. Ao terminar, derrube os servidores que você subiu (portas 4000 e
-5173).
+cadastrado aparece na busca). Compare com o original:
+- **ao vivo** — skill `checkup-original` (`bun run checkup`). Se a feature existe no site do
+  QuintoAndar, **crie uma sonda para ela** em `apps/web/e2e/checkup.ts` (passo 3 da skill) e
+  deixe-a ✅. O hook de Stop do projeto cobra o check-up quando telas mudam.
+- **prints** — skill `conferir-visual` se houver print em `docs/reference/`.
+
+Ao terminar, derrube os servidores que você subiu (portas 4000 e 5173).
 
 ## 5. Feche
 

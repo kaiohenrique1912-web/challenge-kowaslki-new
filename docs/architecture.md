@@ -93,6 +93,7 @@ apps/
     e2e/browser.ts              # Playwright com o Chrome/Edge instalado (launchBrowser, settle)
     e2e/smoke.ts                # `bun run e2e`: 24 fluxos no navegador real
     e2e/visual.ts               # `bun run visual`: nosso site × prints do original, lado a lado
+    e2e/checkup.ts              # `bun run checkup`: sondas nos dois sites (original ao vivo × nosso)
     src/
       main.tsx                  # QueryClientProvider + RouterProvider + "@qa/ui/styles.css"
       router.tsx                # rotas (§8)
@@ -587,6 +588,13 @@ Valores inválidos na URL são descartados silenciosamente (a página nunca queb
   criar alerta, autocomplete, vazio, erro, URL inválida, favoritar, ver favoritos, detalhe com
   galeria, aviso de fora do escopo, voltar, desfavoritar, imóvel inexistente, mobile). Prints em
   `apps/web/e2e/screenshots/` (fora do git).
+- **Check-up ao vivo:** `bun run checkup` abre o **site real do QuintoAndar** e o nosso no mesmo
+  estado e roda as mesmas **sondas** (`PROBES` em `e2e/checkup.ts`): ordem/texto/seleção dos
+  chips, seções e valores padrão do "Mais filtros", tipografia e medidas, deslocamento da bolinha
+  do mapa no hover (quadro a quadro), opção ativa visível no autocomplete. Gera
+  `apps/web/e2e/checkup/report.md` (Campo | Original | Nosso | ✅/❌) e prints lado a lado.
+  Acesso autorizado pelo QuintoAndar; poucas páginas por execução. Um hook de Stop do Claude
+  Code (`.claude/hooks/checkup-reminder.ts`) cobra o check-up quando telas mudam.
 - **Conferência visual:** `bun run visual` leva o site ao mesmo estado de cada print de
   `docs/reference/` (janela 1536×694 com escala 1,25 — a do notebook em que os prints foram
   tirados) e gera `apps/web/e2e/visual/<cena>.compare.png` (original × nosso) + `report.md`
@@ -648,6 +656,7 @@ nenhum `var(--qa-…)` inexistente; o Storybook roda o addon a11y (axe).
 | Codegen do web com `documentMode: "string"` | Operações tipadas sem precisar do runtime `graphql` no navegador. |
 | `dev` da api roda a partir da raiz (`cd ../.. && bun --watch apps/api/src/index.ts`) | De dentro de `apps/api` o `bun --watch` não observa `packages/shared`: mudar uma regra exigiria reiniciar a api na mão. |
 | E2E e conferência visual com `playwright-core` + navegador instalado | Sem baixar navegador; roda no Windows/macOS/Linux com Chrome ou Edge; a mesma base (`e2e/browser.ts`) serve ao smoke e ao visual. |
+| Check-up contra o site ao vivo, por sondas | Prints não mostram comportamento (tremer, rolar, valor padrão). Medir os dois sites com o mesmo código dá diferenças objetivas; cada feature nova ganha sua sonda e regressões aparecem no próximo check-up. |
 | Conferência visual por agente, não por diff de pixels | Dados, fotos e mapa (Google × OSM) do original nunca serão iguais; um diff acusaria tudo. O agente lê as duas imagens e lista diferenças de layout, texto, cor e componentes. |
 | Fonte Albert Sans no lugar da Oatmeal Pro | A do original é paga; Albert Sans foi a mais parecida entre 12 gratuitas comparadas lado a lado. |
 | Tiles OSM com filtro CSS | Google Maps exige chave e é pago; CARTO passou a exigir chave. OSM com cores suavizadas fica próximo do visual do original. |
