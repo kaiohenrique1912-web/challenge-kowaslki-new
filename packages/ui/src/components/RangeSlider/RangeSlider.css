@@ -14,8 +14,8 @@
   background: linear-gradient(
     to right,
     var(--qa-color-divider) var(--range-start),
-    var(--qa-color-text) var(--range-start),
-    var(--qa-color-text) var(--range-end),
+    var(--qa-color-primary) var(--range-start),
+    var(--qa-color-primary) var(--range-end),
     var(--qa-color-divider) var(--range-end)
   );
 }

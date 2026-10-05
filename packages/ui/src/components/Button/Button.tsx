@@ -10,8 +10,9 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
    * secondary: ação de apoio (cinza, ex.: "Mais relevantes", "Fazer proposta").
    * outline: borda, fundo branco (ex.: "Converse conosco agora").
    * link: texto azul sem fundo (ex.: "Limpar", "Ver mais").
+   * ghost: texto preto sem fundo, fundo cinza no hover (ex.: "Favoritos" no cabeçalho).
    */
-  variant?: "primary" | "secondary" | "outline" | "link";
+  variant?: "primary" | "secondary" | "outline" | "link" | "ghost";
   size?: "sm" | "md";
   /** Mostra um spinner e bloqueia cliques; o texto continua lá (acessível). */
   loading?: boolean;

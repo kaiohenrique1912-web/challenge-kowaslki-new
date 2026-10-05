@@ -25,3 +25,8 @@
 .leaflet-container {
   font-family: var(--qa-font-family);
 }
+
+/* Tiles do OpenStreetMap com cores suavizadas, mais perto dos tons do Google Maps do original. */
+.leaflet-tile-pane {
+  filter: saturate(0.45) brightness(1.06) contrast(0.92);
+}

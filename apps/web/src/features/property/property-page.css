@@ -6,7 +6,8 @@
 
 .property-hero {
   display: grid;
-  grid-template-columns: minmax(380px, 0.8fr) minmax(0, 1.2fr);
+  /* Coluna de texto de ~520 px e duas fotos quadradas, como no original. */
+  grid-template-columns: minmax(360px, 520px) minmax(0, 1fr);
   gap: var(--qa-space-6);
   background: var(--qa-color-surface-muted);
 }
@@ -25,16 +26,10 @@
 
 .property-hero__title {
   margin: 0;
-  font-size: clamp(var(--qa-font-size-xl), 2.6vw, var(--qa-font-size-3xl));
+  font-size: clamp(var(--qa-font-size-xl), 3vw, var(--qa-font-size-3xl));
   font-weight: var(--qa-font-weight-bold);
-  line-height: var(--qa-line-height-tight);
-  letter-spacing: -0.02em;
-}
-
-.property-hero__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--qa-space-2);
+  line-height: 1.05;
+  letter-spacing: var(--qa-letter-spacing-tighter);
 }
 
 .property-hero__price {
@@ -51,11 +46,13 @@
   margin: 0;
   font-size: var(--qa-font-size-2xl);
   font-weight: var(--qa-font-weight-bold);
+  letter-spacing: var(--qa-letter-spacing-tight);
 }
 
 .property-hero__monthly {
   margin: 0;
   font-size: var(--qa-font-size-xl);
+  font-weight: var(--qa-font-weight-semibold);
   color: var(--qa-color-text-muted);
 }
 
@@ -67,7 +64,8 @@
 
 .property-body {
   display: grid;
-  grid-template-columns: minmax(0, 760px) 340px;
+  /* Coluna de conteúdo + card de preços estreito, centralizados (medidas do original). */
+  grid-template-columns: minmax(0, 620px) 330px;
   justify-content: center;
   gap: var(--qa-space-10);
   padding: var(--qa-space-6) var(--qa-space-8) 0;
@@ -96,8 +94,21 @@
 }
 
 .property-meta__date {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--qa-space-1);
   font-size: var(--qa-font-size-xs);
   color: var(--qa-color-text-muted);
+}
+
+/* Faixa com "ruas" desenhadas atrás do card do endereço, como no original. */
+.property-address {
+  padding: var(--qa-space-4) var(--qa-space-6);
+  border-radius: var(--qa-radius-lg);
+  background:
+    repeating-linear-gradient(35deg, transparent 0 34px, var(--qa-color-surface) 34px 44px),
+    repeating-linear-gradient(-55deg, transparent 0 58px, var(--qa-color-surface) 58px 66px),
+    var(--qa-color-surface-hover);
 }
 
 .property-section {
@@ -107,7 +118,7 @@
 
 .property-section__title {
   margin: 0;
-  font-size: var(--qa-font-size-xl);
+  font-size: var(--qa-font-size-lg);
   font-weight: var(--qa-font-weight-semibold);
 }
 

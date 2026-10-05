@@ -681,3 +681,125 @@ bun run e2e     # (com o dev rodando) os 20 fluxos no Chrome
 | Code splitting | Dividir o código do site em pedaços baixados só quando necessários. |
 | Lightbox | Visualizador de fotos em tela cheia, por cima da página. |
 | README | Arquivo de apresentação de um projeto: o que é e como usar. |
+
+---
+
+# Aprendizado — Etapa 7 (Conferência com o original e preparação para agentes)
+
+Esta etapa teve duas partes: deixar o site **o mais parecido possível com o QuintoAndar**, com uma conferência automática usando Playwright, e deixar o projeto **pronto para um agente criar uma feature nova em uma única instrução**.
+
+## 1. A conferência visual com Playwright
+
+### 1.1 O que é e por que não é um "diff de pixels"
+O **Playwright** é uma biblioteca que controla o navegador por código: abre páginas, clica, arrasta, tira prints. Usamos o Chrome já instalado (`playwright-core`), sem baixar nada.
+
+O comando novo `bun run visual` leva o nosso site ao **mesmo estado** de cada print do original em `docs/reference/` (mesma busca, mesmo painel aberto, mesmo tamanho de janela) e monta uma imagem **lado a lado**: original à esquerda, nosso à direita. Quem compara as imagens é o agente, olhando como uma pessoa olharia. Um comparador de pixels não serve aqui: os imóveis, as fotos e o mapa (Google no original, OpenStreetMap aqui) nunca vão ser iguais, e ele acusaria a tela inteira.
+
+### 1.2 Uma descoberta: os prints estavam com zoom de 125%
+Os prints foram tirados num notebook com o Windows em 125%. Um print de 1917 px corresponde a uma janela de ~1536 px "de verdade". Por isso a conferência usa essa janela com zoom 1,25; sem isso, tudo parecia menor e mais espremido do que realmente estava.
+
+### 1.3 De onde vieram as medidas certas
+Em vez de chutar cores e tamanhos pelos prints, lemos o **CSS público** do site do QuintoAndar. Lá estão as variáveis do design system deles: a cor azul exata, os cinzas, o tamanho base do texto (15 px, não 16), os pesos (só 400 e 600) e os raios. Copiamos esses valores para os nossos tokens.
+
+A fonte deles se chama **Oatmeal Pro**, e é paga. Colocamos 12 fontes gratuitas lado a lado com um print do original, e a mais parecida foi a **Albert Sans**.
+
+## 2. Diferenças encontradas e o que foi feito
+
+### 2.1 Corrigidas
+| Onde | Antes | Agora (como o original) |
+|---|---|---|
+| Fonte e cores | Inter, azul e cinzas aproximados, texto base de 16 px | Albert Sans, cores e tamanhos do CSS do original, texto base de 15 px |
+| Cabeçalho | Só "Comprar" e "Favoritos" | Logo maior e menu completo: Alugar, Comprar, Anunciar, QPreço, Consórcio, Links úteis, Ajuda, "Entrar"; "Favoritos (N)" ao lado |
+| Cabeçalho do imóvel | Igual ao da busca | Só o símbolo do logo + campo "Rua, bairro ou código" |
+| Barra de filtros | 4 chips + "Favoritos" | 9 chips (Valor, Tipos, Quartos, Vagas, Banheiros, Área, Mobiliado, Próximo ao metrô, Suítes), setas ‹ ›, chips maiores com texto menor, "Criar alerta de imóvel" |
+| Campo de local vazio | "Rua, bairro ou código" | "Qualquer lugar em São Paulo, SP" |
+| Título da lista | "35.893 Apartamentos" | "35.893 apartamentos" (minúsculas) |
+| Linha do condomínio no card | "Condo. + IPTU R$ 870" | "R$ 870 Condo. + IPTU" |
+| Chips "no mínimo" | "1+ banheiro" | "1+ banheiros" (sempre no plural) |
+| Painel "Mais filtros" | Abria à direita, com título "Filtros" e divisórias | Abre à esquerda, só com o X, sem divisórias, slider azul, títulos no tamanho do original |
+| Mapa | Tiles coloridos do OSM, bolinhas grandes que quebravam "3,2 mil" em duas linhas, zoom quadrado | Cores suavizadas, bolinhas mais densas (grade de 85 px) sem quebra, zoom em dois círculos brancos |
+| Mapa | Botão "Buscar ao mover o mapa" | Removido (o original não tem: a lista sempre acompanha o mapa) |
+| Detalhe | Coluna de texto larga, selos no topo, "Fazer proposta" no topo, X nos itens indisponíveis, conteúdo largo | Coluna de ~520 px, sem selos, "Converse conosco agora", ícone ⊘ nos indisponíveis, relógio no "Publicado há", faixa de "ruas" atrás do endereço, conteúdo e card de preços estreitos como no original |
+| Página inicial `/` | Ia direto para a busca | Home com o card "Buscar imóveis" (bairro, valor, quartos) |
+
+### 2.2 Features que faltavam e foram feitas
+- **Desenhar área de busca:** você arrasta o mouse no mapa, o traço vira um polígono e a busca passa a mostrar só o que está dentro dele ("à venda na área desenhada no mapa"). O filtro roda no próprio SQL: para cada ponto, contamos quantas bordas do desenho um raio a partir dele cruza; número ímpar quer dizer que o ponto está dentro. Assim a contagem e o "Ver mais" continuam exatos.
+- **Criar alerta de imóvel:** é o modal do print, com app, WhatsApp e e-mail. O alerta fica salvo no banco (tabela nova, `search_alerts`); o envio das mensagens está fora do escopo.
+- **Home**, com o card de busca.
+- **Aviso único de "fora do escopo"** para tudo o que o original tem e nós não: menus, "Entrar", "Agendar visita"…
+
+### 2.3 Aceitas (não dá ou não faz sentido igualar)
+- **Fotos reais e dados:** os imóveis são gerados, e as fotos são ilustrações.
+- **Google Maps:** é pago e pede chave. Usamos o OpenStreetMap com as cores suavizadas.
+- **Oatmeal Pro:** é paga; a Albert Sans é um pouco mais larga, por isso alguns títulos quebram uma linha a mais.
+- **Aluguel:** fora do escopo. Os prints de aluguel foram usados só pelo visual, e as abas "Alugar" mostram o aviso.
+- **Onboarding por perguntas** (`exemplo_pergunta_extra*.jpeg`): fora do escopo.
+- **Cadastro de imóveis** (`anunciar_imoveis.jpeg`): de propósito, ficou para o teste "one-shot".
+
+## 3. Preparação para agentes
+
+### 3.1 `CLAUDE.md` reescrito
+É o primeiro arquivo que um agente lê. Ficou mais curto e completo:
+- uma tabela "preciso de… → arquivo";
+- os comandos;
+- as regras que não se negociam;
+- a feature nova em 9 passos.
+
+### 3.2 `docs/feature-recipe.md`
+A receita detalhada de uma feature ponta a ponta. Os passos seguem esta ordem, porque cada camada depende da anterior:
+1. **shared:** as regras.
+2. **Banco:** a migração.
+3. **GraphQL:** o contrato.
+4. **API:** a lógica.
+5. **Design system:** os componentes.
+6. **Tela:** as páginas e a navegação.
+7. **Testes:** os fluxos no navegador.
+8. **Docs:** a atualização no mesmo commit.
+
+Tem também um checklist de "pronto" e um exemplo resolvido com arquivos reais: o alerta de busca, que passou por todas essas camadas.
+
+### 3.3 Skills do Claude Code (`.claude/skills/`)
+Uma **skill** é um arquivo de instruções que o Claude Code carrega quando a tarefa combina com a descrição dela, ou quando você digita `/nome`. A ideia veio das skills do pacote "pstack" do Cursor: descrição dizendo *quando* usar, passos numerados e exigência de **provar** que funciona (rodar, não só escrever).
+- **`/nova-feature`:** segue a receita inteira, do contexto até o commit.
+- **`regras-imoveis`:** um mapa de "regra → onde está no código", para o agente reusar em vez de reescrever.
+- **`/conferir-visual`:** roda o `bun run visual`, compara, classifica as diferenças em *corrigir / feature faltando / aceito* e corrige.
+
+### 3.4 Regras reutilizáveis centralizadas
+Procuramos o que uma feature nova (por exemplo, o cadastro) teria de reescrever, e movemos para lugares compartilhados:
+- **`PROPERTY_FIELD_LABELS`:** os nomes dos campos do imóvel. São os mesmos usados nas mensagens de erro, e um formulário usa direto.
+- **`findNeighborhoodForPoint`:** descobre o bairro de um ponto do mapa.
+- **`property-row.ts`:** a lista de colunas para gravar um imóvel, que antes só existia dentro do seed.
+- **Escalas dos sliders:** saíram do design system e foram para o `shared`.
+
+## 4. Problemas encontrados e como foram resolvidos
+- **Prints com zoom de 125%:** a primeira comparação parecia muito errada até descobrirmos o zoom (seção 1.2).
+- **Tiles da CARTO:** começaram a pedir chave de API (apareceu "API KEY REQUIRED" no mapa). Voltamos ao OpenStreetMap com um filtro de cor.
+- **Um passo do teste parecia quebrado, mas não estava:** o Playwright espera um elemento ficar "visível", e a camada de tiles do Leaflet tem tamanho zero por natureza. Bastou pedir só que ela exista.
+- **Troca de biblioteca do teste:** o teste no navegador usava o puppeteer; passou para o Playwright, para ter uma ferramenta só para o smoke e para a conferência visual.
+
+## 5. Resultado
+| Item | Situação |
+|---|---|
+| Testes automáticos | 189 passando |
+| Teste no navegador | 24/24 fluxos (4 novos: home, desenhar área, criar alerta, aviso de fora do escopo) |
+| Conferência visual | 13 cenas comparadas com 13 prints do original |
+| Componentes novos | `SearchAlertDialog`, `TabBar` (+ cabeçalho e barra de filtros refeitos) |
+| Docs novos | `docs/feature-recipe.md`, 3 skills em `.claude/skills/` |
+
+## 6. Como testar você mesmo
+```
+bun run dev
+bun run visual     # abra apps/web/e2e/visual/*.compare.png
+bun run e2e        # os 24 fluxos no Chrome
+```
+No Claude Code: `/conferir-visual` depois de mudar uma tela, e `/nova-feature <descrição>` para uma feature nova.
+
+## 7. Glossário da Etapa 7
+| Termo | Significado |
+|---|---|
+| Playwright | Biblioteca que controla o navegador por código (abrir, clicar, tirar print). |
+| Skill | Arquivo de instruções que o Claude Code carrega para um tipo de tarefa. |
+| Token de design | Valor nomeado do visual (cor, tamanho, raio) usado em todo o CSS. |
+| Escala do dispositivo (DPR) | Quantos pixels da tela cabem em 1 pixel "do site"; 1,25 com o Windows em 125%. |
+| Polígono | Figura fechada de vários pontos; aqui, a área desenhada no mapa. |
+| One-shot | Pedir uma feature em uma única instrução e o agente entregar pronta. |

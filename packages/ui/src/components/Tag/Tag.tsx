@@ -14,7 +14,7 @@ export type TagProps = {
 /** Item de lista com ícone, sem fundo — atributos e comodidades no detalhe ("✓ Varanda"). */
 export function Tag({ children, icon, tone = "default", className }: TagProps) {
   const resolvedIcon =
-    icon ?? (tone === "available" ? "check" : tone === "unavailable" ? "close" : undefined);
+    icon ?? (tone === "available" ? "check" : tone === "unavailable" ? "ban" : undefined);
   return (
     <span className={cx("qa-tag", `qa-tag--${tone}`, className)}>
       {resolvedIcon && <Icon name={resolvedIcon} size={18} />}

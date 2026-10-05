@@ -1,65 +1,75 @@
 /**
  * Tokens do design system — FONTE ÚNICA. `tokens.css` é gerado a partir daqui com
  * `bun run tokens` (dentro de packages/ui); um teste garante que os dois estão iguais.
- * Valores inspirados nos prints do QuintoAndar em docs/reference/.
+ * Valores tirados do CSS público do QuintoAndar (tokens "tokens-base-*" do site) e conferidos
+ * com os prints de docs/reference/ via `bun run visual`. A fonte original (Oatmeal Pro) é paga;
+ * usamos Albert Sans, a gratuita mais parecida.
  * Uso em CSS: `var(--qa-color-primary)`. Uso em TS: `tokens.color.primary`.
  */
 
 export const tokens = {
   color: {
-    primary: "#3b5bc2",
-    primaryHover: "#2f4aa3",
-    primaryPressed: "#263d88",
-    primarySubtle: "#eef1fc",
-    primaryBorder: "#c4cff2",
+    primary: "#3957bd", // blue-400
+    primaryHover: "#1b43a6", // blue-500
+    primaryPressed: "#07358f", // blue-600
+    primarySubtle: "#f0f3ff", // blue-00 — chip/filtro selecionado
+    primaryBorder: "#d2dbf8", // blue-50
     onPrimary: "#ffffff",
 
-    text: "#1f1f1f",
-    textMuted: "#5c5c5c",
-    textSubtle: "#8a8a8a",
+    text: "#000000",
+    textMuted: "#575763", // blueGray-600 — texto de apoio
+    textSubtle: "#737380", // blueGray-500
     textInverse: "#ffffff",
 
     surface: "#ffffff",
-    surfaceMuted: "#f3f3f3",
-    surfaceHover: "#e8e8e8",
-    surfaceInverse: "#1f1f1f",
-    overlay: "rgb(0 0 0 / 0.45)",
+    surfaceMuted: "#f5f5f7", // blueGray-00 — chips, campos, hero do detalhe
+    surfaceHover: "#e4e4e8", // blueGray-50
+    surfaceInverse: "#000000",
+    overlay: "rgb(0 0 0 / 0.5)",
 
-    border: "#d9d9d9",
-    borderStrong: "#b3b3b3",
-    divider: "#ebebeb",
+    border: "#d7d7dd", // blueGray-100
+    borderStrong: "#b9b9c3", // blueGray-200
+    divider: "#e4e4e8",
 
-    danger: "#d93a3a",
-    dangerSubtle: "#fdecec",
-    success: "#1f8a4c",
-    successSubtle: "#e7f5ec",
+    danger: "#b23f19", // red-400
+    dangerSubtle: "#ffe9e6",
+    success: "#407a40", // green-500
+    successSubtle: "#ecf7eb",
     warning: "#b26a00",
 
-    favorite: "#e0245e",
+    favorite: "#ea4e58", // pink-400
     mapPin: "#e8423f",
     skeleton: "#ececec",
     skeletonHighlight: "#f6f6f6",
   },
 
   font: {
-    family: '"Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    family:
+      '"Albert Sans Variable", "Albert Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
   },
 
   fontSize: {
-    xs: "0.75rem", // 12px — badges, legendas
-    sm: "0.875rem", // 14px — texto de apoio, chips, endereço
-    md: "1rem", // 16px — texto padrão
-    lg: "1.125rem", // 18px — preço no card
-    xl: "1.5rem", // 24px — títulos de seção
-    "2xl": "2rem", // 32px — preço no detalhe
-    "3xl": "2.75rem", // 44px — título hero
+    // Escala do original: base 15px (não 16).
+    xs: "0.75rem", // 12px — selos, legendas, texto dos chips
+    sm: "0.8125rem", // 13px — título do card, trilha
+    md: "0.9375rem", // 15px — texto padrão
+    lg: "1.25rem", // 20px — preço no card, títulos de seção
+    xl: "1.6667rem", // 26.7px — títulos de modal
+    "2xl": "2.2208rem", // 35.5px — preço no detalhe
+    "3xl": "2.96rem", // 47.4px — título hero
   },
 
   fontWeight: {
+    // O original só usa 400 e 600; "bold" fica igual a "semibold" de propósito.
     regular: "400",
     medium: "500",
     semibold: "600",
-    bold: "700",
+    bold: "600",
+  },
+
+  letterSpacing: {
+    tight: "-0.02em", // títulos
+    tighter: "-0.035em", // títulos grandes (hero)
   },
 
   lineHeight: {
@@ -99,7 +109,8 @@ export const tokens = {
   /** Altura dos controles (botões, inputs, chips). */
   control: {
     sm: "2.25rem", // 36px
-    md: "3rem", // 48px — chips da barra de filtros
+    md: "3rem", // 48px — botões
+    lg: "3.5rem", // 56px — chips e campo de local da barra de filtros
   },
 
   zIndex: {
@@ -115,7 +126,7 @@ export const tokens = {
     normal: "200ms",
   },
 
-  focusRing: "0 0 0 3px rgb(59 91 194 / 0.4)",
+  focusRing: "0 0 0 3px rgb(57 87 189 / 0.4)",
 } as const;
 
 /** Breakpoints (min-width, px). CSS custom properties não funcionam em media queries, então

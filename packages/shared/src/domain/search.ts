@@ -72,3 +72,15 @@ export const LOCATION_SUGGESTIONS = { minQueryLength: 2, defaultLimit: 8, maxLim
 export type IntRange = { min?: number | null; max?: number | null };
 export type BoundingBox = { north: number; south: number; east: number; west: number };
 export type LatLng = { lat: number; lng: number };
+
+/** Opções de "Valor do imóvel até" do card de busca da home (R$). */
+export const HOME_PRICE_MAX_OPTIONS = [
+  300_000, 500_000, 750_000, 1_000_000, 1_500_000, 2_000_000, 3_000_000, 5_000_000,
+] as const;
+
+/** Escalas dos sliders de faixa do painel de filtros (os campos de texto aceitam qualquer valor). */
+export const FILTER_SLIDER_SCALES = {
+  price: { max: 5_000_000, step: 50_000 },
+  monthlyCost: { max: 10_000, step: 100 },
+  area: { max: 1_000, step: 10 },
+} as const;

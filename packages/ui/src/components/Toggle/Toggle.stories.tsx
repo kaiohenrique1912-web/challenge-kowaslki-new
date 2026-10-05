@@ -10,7 +10,7 @@ function Controlled(props: Omit<ToggleProps, "onChange">) {
 const meta = {
   title: "Base/Toggle",
   component: Toggle,
-  args: { label: "Buscar ao mover o mapa", checked: true, onChange: () => {} },
+  args: { label: "Notificações no app", checked: true, onChange: () => {} },
   render: (args) => <Controlled {...args} />,
 } satisfies Meta<typeof Toggle>;
 

@@ -107,4 +107,30 @@ describe("favorites in the URL", () => {
     expect(toApiFilters(state, "list")).toEqual({ onlyFavorites: true });
     expect(toApiFilters(state, "map")).toEqual({ onlyFavorites: true });
   });
+
+  test("área desenhada: round-trip, substitui bairro e área do mapa, vale para lista e mapa", () => {
+    const drawnArea = [
+      { lat: -23.5, lng: -46.7 },
+      { lat: -23.5, lng: -46.6 },
+      { lat: -23.6, lng: -46.65 },
+    ];
+    const state: SearchState = { ...EMPTY_SEARCH_STATE, drawnArea };
+    const url = searchStateToUrl(state);
+    expect(url).toBe(
+      "/comprar/imovel?area-desenhada=-23.5%2C-46.7%3B-23.5%2C-46.6%3B-23.6%2C-46.65",
+    );
+    expect(parse(url)).toEqual(state);
+    // Bairro e área do mapa na mesma URL perdem para o desenho.
+    expect(
+      parse(
+        `/comprar/imovel/pinheiros${url.slice("/comprar/imovel".length)}&area-mapa=-23.5,-46.7,-23.6,-46.6`,
+      ),
+    ).toEqual(state);
+    expect(toApiFilters(state, "list")).toEqual({ polygon: drawnArea });
+    expect(toApiFilters(state, "map")).toEqual({ polygon: drawnArea });
+    // Polígono inválido (2 pontos) é ignorado.
+    expect(
+      parse("/comprar/imovel?area-desenhada=-23.5,-46.7;-23.6,-46.6").drawnArea,
+    ).toBeUndefined();
+  });
 });

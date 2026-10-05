@@ -4,6 +4,15 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
+/** Canal de aviso de um alerta de busca. */
+export type AlertChannel =
+  /** Notificações no app (assim que o imóvel chegar). */
+  | 'APP'
+  /** E-mail com os imóveis que chegaram no dia. */
+  | 'EMAIL'
+  /** Whatsapp (assim que o imóvel chegar). */
+  | 'WHATSAPP';
+
 /** Códigos estáveis das comodidades (docs/business-rules.md §3). */
 export type AmenityCode =
   | 'ACCESSIBLE_PARKING'
@@ -72,10 +81,20 @@ export type BoundingBox = {
   west: number;
 };
 
+export type CreateSearchAlertInput = {
+  channels: Array<AlertChannel>;
+  searchUrl: string;
+};
+
 /** Faixa inclusiva; qualquer lado pode ficar em branco. */
 export type IntRange = {
   max?: number | null | undefined;
   min?: number | null | undefined;
+};
+
+export type LatLngInput = {
+  lat: number;
+  lng: number;
 };
 
 export type LocationSuggestionKind =
@@ -111,6 +130,8 @@ export type PropertySearchFilters = {
   neighborhoodSlugs?: Array<string> | null | undefined;
   /** Só favoritos do usuário do header x-user-id. */
   onlyFavorites?: boolean | null | undefined;
+  /** Área desenhada no mapa (polígono de 3 a 40 pontos): só imóveis dentro dela. */
+  polygon?: Array<LatLngInput> | null | undefined;
   /** Valor de venda (R$). */
   price?: IntRange | null | undefined;
   publishedWithin?: PublishedWithin | null | undefined;
@@ -213,6 +234,13 @@ export type FavoritesCountQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type FavoritesCountQuery = { favoritesCount: number };
+
+export type CreateSearchAlertMutationVariables = Exact<{
+  input: CreateSearchAlertInput;
+}>;
+
+
+export type CreateSearchAlertMutation = { createSearchAlert: { id: string, searchUrl: string, channels: Array<AlertChannel> } };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -466,3 +494,12 @@ export const FavoritesCountDocument = new TypedDocumentString(`
   favoritesCount
 }
     `) as unknown as TypedDocumentString<FavoritesCountQuery, FavoritesCountQueryVariables>;
+export const CreateSearchAlertDocument = new TypedDocumentString(`
+    mutation CreateSearchAlert($input: CreateSearchAlertInput!) {
+  createSearchAlert(input: $input) {
+    id
+    searchUrl
+    channels
+  }
+}
+    `) as unknown as TypedDocumentString<CreateSearchAlertMutation, CreateSearchAlertMutationVariables>;

@@ -1,9 +1,12 @@
 export * from "./domain/amenities.ts";
 export * from "./domain/derived.ts";
+export * from "./domain/drawn-area.ts";
 export * from "./domain/limits.ts";
 export * from "./domain/map-grid.ts";
+export * from "./domain/neighborhood-locator.ts";
 export * from "./domain/property.ts";
 export * from "./domain/search.ts";
+export * from "./domain/search-alert.ts";
 export * from "./format/property-detail.ts";
 export * from "./format/property-text.ts";
 export * from "./format/text.ts";
@@ -14,3 +17,4 @@ export * from "./search/url.ts";
 export * from "./search/validate.ts";
 export * from "./validation/property.ts";
 export * from "./validation/search.ts";
+export * from "./validation/search-alert.ts";

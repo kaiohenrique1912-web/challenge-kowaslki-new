@@ -125,6 +125,8 @@ input PropertySearchFilters {
   neighborhoodSlugs: [String!]
   "Área visível do mapa."
   bbox: BoundingBox
+  "Área desenhada no mapa (polígono de 3 a 40 pontos): só imóveis dentro dela."
+  polygon: [LatLngInput!]
   types: [PropertyType!]
   "Valor de venda (R$)."
   price: IntRange

@@ -1,0 +1,65 @@
+/* Home: card branco sobre a "foto" (ilustração placeholder servida pela api). Só tokens. */
+.home-hero {
+  display: flex;
+  align-items: flex-start;
+  min-height: calc(100dvh - 78px);
+  padding: 0 var(--qa-space-12) var(--qa-space-12);
+  /* Sem fotos reais no projeto: um fundo azul da marca no lugar da foto do original. */
+  background: linear-gradient(
+    120deg,
+    var(--qa-color-primary-border),
+    var(--qa-color-primary-subtle) 60%,
+    var(--qa-color-surface-muted)
+  );
+}
+
+.home-card {
+  display: grid;
+  gap: var(--qa-space-6);
+  width: min(512px, 100%);
+  padding: var(--qa-space-8);
+  border-radius: 0 0 var(--qa-radius-xl) var(--qa-radius-xl);
+  background: var(--qa-color-surface);
+  box-shadow: var(--qa-shadow-lg);
+}
+
+.home-card__mode {
+  justify-self: start;
+}
+
+.home-card__title {
+  margin: 0;
+  font-size: var(--qa-font-size-3xl);
+  font-weight: var(--qa-font-weight-bold);
+  line-height: 1.05;
+  letter-spacing: var(--qa-letter-spacing-tighter);
+}
+
+.home-card__form {
+  display: grid;
+  gap: var(--qa-space-4);
+}
+
+.home-card__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--qa-space-3);
+}
+
+.home-card__form > .qa-button {
+  margin-top: var(--qa-space-4);
+}
+
+@media (max-width: 767px) {
+  .home-hero {
+    padding: 0;
+  }
+
+  .home-card {
+    border-radius: 0;
+  }
+
+  .home-card__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

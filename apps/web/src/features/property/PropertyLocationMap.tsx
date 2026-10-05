@@ -3,6 +3,7 @@ import { MapPin } from "@qa/ui";
 import L from "leaflet";
 import { useEffect, useRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MAP_TILES } from "../../lib/map-tiles.ts";
 
 type Props = { lat: number; lng: number; label: string };
 
@@ -14,10 +15,7 @@ export function PropertyLocationMap({ lat, lng, label }: Props) {
     const container = containerRef.current;
     if (!container) return;
     const map = L.map(container, { center: [lat, lng], zoom: 16, scrollWheelZoom: false });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
+    L.tileLayer(MAP_TILES.url, MAP_TILES.options).addTo(map);
     L.marker([lat, lng], {
       icon: L.divIcon({
         className: "search-map-marker search-map-marker--pin",

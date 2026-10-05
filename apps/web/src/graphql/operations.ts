@@ -208,3 +208,13 @@ export const favoritesCountDocument = graphql(`
     favoritesCount
   }
 `);
+
+export const createSearchAlertDocument = graphql(`
+  mutation CreateSearchAlert($input: CreateSearchAlertInput!) {
+    createSearchAlert(input: $input) {
+      id
+      searchUrl
+      channels
+    }
+  }
+`);

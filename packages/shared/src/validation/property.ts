@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { AMENITY_CODES, isAmenityApplicable } from "../domain/amenities.ts";
 import { PROPERTY_LIMITS as L, SAO_PAULO_BOUNDS, SAO_PAULO_CEP_RANGE } from "../domain/limits.ts";
-import { PROPERTY_TYPES, TYPES_WITH_FLOOR } from "../domain/property.ts";
+import {
+  PROPERTY_FIELD_LABELS as F,
+  PROPERTY_TYPES,
+  TYPES_WITH_FLOOR,
+} from "../domain/property.ts";
 
 /**
  * Validação dos dados informados de um imóvel (cadastro/edição e seed).
@@ -34,9 +38,9 @@ export const propertyInputSchema = z
   .object({
     type: z.enum(PROPERTY_TYPES, { error: "Tipo de imóvel inválido." }),
     cep: cepSchema,
-    street: text("Rua", L.street),
-    number: text("Número", L.number),
-    complement: text("Complemento", L.complement).nullable(),
+    street: text(F.street, L.street),
+    number: text(F.number, L.number),
+    complement: text(F.complement, L.complement).nullable(),
     neighborhoodId: z.number().int().positive("Bairro é obrigatório."),
     latitude: z
       .number()
@@ -46,22 +50,22 @@ export const propertyInputSchema = z
       .number()
       .min(SAO_PAULO_BOUNDS.west, "Localização fora de São Paulo.")
       .max(SAO_PAULO_BOUNDS.east, "Localização fora de São Paulo."),
-    salePrice: int("Valor de venda", L.salePrice),
-    condoFee: int("Condomínio", L.condoFee),
-    iptu: int("IPTU", L.iptu),
-    area: int("Área", L.area),
-    bedrooms: int("Quartos", L.bedrooms),
-    suites: int("Suítes", { min: 0, max: L.bedrooms.max }),
-    bathrooms: int("Banheiros", L.bathrooms),
-    parkingSpaces: int("Vagas", L.parkingSpaces),
-    floor: int("Andar", L.floor).nullable(),
+    salePrice: int(F.salePrice, L.salePrice),
+    condoFee: int(F.condoFee, L.condoFee),
+    iptu: int(F.iptu, L.iptu),
+    area: int(F.area, L.area),
+    bedrooms: int(F.bedrooms, L.bedrooms),
+    suites: int(F.suites, { min: 0, max: L.bedrooms.max }),
+    bathrooms: int(F.bathrooms, L.bathrooms),
+    parkingSpaces: int(F.parkingSpaces, L.parkingSpaces),
+    floor: int(F.floor, L.floor).nullable(),
     isFurnished: z.boolean(),
     acceptsPets: z.boolean(),
     nearSubway: z.boolean(),
     isExclusive: z.boolean(),
     isRented: z.boolean(),
-    monthlyRent: int("Aluguel atual", L.monthlyRent).nullable(),
-    description: text("Descrição", L.description),
+    monthlyRent: int(F.monthlyRent, L.monthlyRent).nullable(),
+    description: text(F.description, L.description),
     amenities: z.array(z.enum(AMENITY_CODES, { error: "Comodidade inválida." })),
     photos: z
       .array(z.string().min(1).max(500))

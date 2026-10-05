@@ -1,15 +1,20 @@
 import {
+  CITY,
   countActiveFilters,
   type PropertyFilters,
   pluralize,
+  QUICK_FILTER_IDS,
+  QUICK_FILTERS,
+  type QuickFilterId,
   quickFilterLabel,
   type SearchState,
+  STATE,
   toApiFilters,
   validatePropertyFilters,
 } from "@qa/shared";
 import {
+  AreaFilter,
   Button,
-  Chip,
   Drawer,
   FilterBar,
   FilterPanel,
@@ -17,22 +22,14 @@ import {
   PriceFilter,
   PropertyTypesFilter,
   type QuickFilter,
+  YesNoFilter,
 } from "@qa/ui";
 import { type ReactNode, useState } from "react";
 import { useDebouncedValue } from "../../lib/hooks.ts";
+import { SearchAlertButton } from "../search-alerts/SearchAlertButton.tsx";
 import { LocationSearch } from "./LocationSearch.tsx";
 import { type NeighborhoodInfo, useResultCount } from "./queries.ts";
 import type { SetSearchState } from "./use-search-state.ts";
-
-type QuickFilterId = "price" | "types" | "bedrooms" | "parking";
-
-/** Chaves que o "Limpar" de cada filtro rápido zera. */
-const QUICK_FILTER_KEYS: Record<QuickFilterId, (keyof PropertyFilters)[]> = {
-  price: ["price"],
-  types: ["types"],
-  bedrooms: ["minBedrooms"],
-  parking: ["minParkingSpaces"],
-};
 
 type Props = {
   state: SearchState;
@@ -84,7 +81,7 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
         variant="link"
         onClick={() => {
           const next = { ...draft };
-          for (const key of QUICK_FILTER_KEYS[id]) delete next[key];
+          for (const key of QUICK_FILTERS[id].keys) delete next[key];
           setDraft(next);
         }}
       >
@@ -100,8 +97,13 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
     types: <PropertyTypesFilter {...sectionProps} />,
     bedrooms: <MinCountFilter field="bedrooms" {...sectionProps} />,
     parking: <MinCountFilter field="parkingSpaces" {...sectionProps} />,
+    bathrooms: <MinCountFilter field="bathrooms" {...sectionProps} />,
+    area: <AreaFilter {...sectionProps} />,
+    furnished: <YesNoFilter field="furnished" {...sectionProps} />,
+    nearSubway: <YesNoFilter field="nearSubway" {...sectionProps} />,
+    suites: <MinCountFilter field="suites" {...sectionProps} />,
   };
-  const quickFilters: QuickFilter[] = (Object.keys(panels) as QuickFilterId[]).map((id) => ({
+  const quickFilters: QuickFilter[] = QUICK_FILTER_IDS.map((id) => ({
     id,
     ...quickFilterLabel(id, state.filters),
     panel: panels[id],
@@ -112,7 +114,14 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
     <>
       <FilterBar
         locationSlot={
-          <LocationSearch state={state} setState={setState} neighborhoods={neighborhoods} />
+          <LocationSearch
+            state={state}
+            setState={setState}
+            neighborhoods={neighborhoods}
+            placeholder={
+              state.drawnArea ? "Área desenhada no mapa" : `Qualquer lugar em ${CITY}, ${STATE}`
+            }
+          />
         }
         quickFilters={quickFilters}
         openFilterId={openFilter}
@@ -126,22 +135,14 @@ export function SearchFilters({ state, setState, neighborhoods }: Props) {
           setPanelOpen(true);
         }}
         activeCount={countActiveFilters(state.filters)}
-        trailing={
-          <Chip
-            icon="heart"
-            selected={state.onlyFavorites === true}
-            onClick={() =>
-              setState((s) => ({ ...s, onlyFavorites: s.onlyFavorites ? undefined : true }))
-            }
-          >
-            Favoritos
-          </Chip>
-        }
+        trailing={<SearchAlertButton />}
       />
       <Drawer
+        side="left"
         open={panelOpen}
         onClose={() => setPanelOpen(false)}
         title="Filtros"
+        hideTitle
         footer={
           <>
             <Button variant="link" onClick={() => setDraft({})}>

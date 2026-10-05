@@ -56,30 +56,68 @@
   pointer-events: auto;
 }
 
-.search-map__toggle {
+/* "Desenhar área de busca" / "Apagar desenho": centralizado embaixo, como no original. */
+.search-map__draw {
   position: absolute;
   bottom: var(--qa-space-6);
-  left: var(--qa-space-4);
-  z-index: 500;
-  padding: var(--qa-space-2) var(--qa-space-3);
-  border-radius: var(--qa-radius-pill);
-  background: var(--qa-color-surface);
-  box-shadow: var(--qa-shadow-md);
-}
-
-.search-map__center-action {
-  position: absolute;
-  top: calc(var(--qa-space-16) + var(--qa-space-2));
   left: 50%;
   z-index: 500;
   transform: translateX(-50%);
-  box-shadow: var(--qa-shadow-md);
   border-radius: var(--qa-radius-pill);
+  box-shadow: var(--qa-shadow-md);
+}
+
+.search-map__draw .qa-button {
+  border-color: transparent;
+}
+
+.search-map__hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 500;
+  margin: 0;
+  padding: var(--qa-space-2) var(--qa-space-4);
+  border-radius: var(--qa-radius-pill);
+  background: var(--qa-color-surface-inverse);
+  color: var(--qa-color-text-inverse);
+  font-size: var(--qa-font-size-sm);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.search-map__canvas--drawing {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* Zoom: dois círculos brancos separados no canto inferior direito. */
+.search-map .leaflet-control-zoom.leaflet-bar {
+  display: grid;
+  gap: var(--qa-space-3);
+  margin: 0 var(--qa-space-4) var(--qa-space-6) 0;
+  border: none;
+  box-shadow: none;
+}
+
+.search-map .leaflet-control-zoom a {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--qa-color-surface);
+  box-shadow: var(--qa-shadow-md);
+  color: var(--qa-color-text);
+  font: var(--qa-font-weight-regular) 22px / 40px var(--qa-font-family);
+}
+
+.search-map .leaflet-control-zoom a:hover {
+  background: var(--qa-color-surface-muted);
 }
 
 .search-map__status {
   position: absolute;
-  bottom: var(--qa-space-6);
+  bottom: calc(var(--qa-space-16) + var(--qa-space-4));
   left: 50%;
   z-index: 500;
   display: flex;
@@ -91,7 +129,7 @@
 
 .search-map__preview {
   position: absolute;
-  bottom: calc(var(--qa-space-16) + var(--qa-space-4)); /* acima do "Buscar ao mover o mapa" */
+  bottom: calc(var(--qa-space-16) + var(--qa-space-4)); /* acima do "Desenhar área de busca" */
   left: var(--qa-space-4);
   z-index: 600;
   width: min(300px, calc(100% - var(--qa-space-8)));
@@ -113,10 +151,4 @@
   place-items: center;
   height: 240px;
   color: var(--qa-color-primary);
-}
-
-@media (max-width: 767px) {
-  .search-map__toggle {
-    display: none;
-  }
 }

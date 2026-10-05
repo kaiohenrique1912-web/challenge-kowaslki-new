@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AMENITY_CODES } from "../domain/amenities.ts";
+import { DRAWN_AREA } from "../domain/drawn-area.ts";
 import { MAP_ZOOM } from "../domain/map-grid.ts";
 import { PROPERTY_TYPES } from "../domain/property.ts";
 import {
@@ -61,6 +62,17 @@ export const searchFiltersSchema = z
       .max(MAX_NEIGHBORHOOD_FILTER, `Selecione no máximo ${MAX_NEIGHBORHOOD_FILTER} bairros.`)
       .nullish(),
     bbox: boundingBoxSchema.nullish(),
+    polygon: z
+      .array(latLngSchema)
+      .min(
+        DRAWN_AREA.minPoints,
+        `Área desenhada: use de ${DRAWN_AREA.minPoints} a ${DRAWN_AREA.maxPoints} pontos.`,
+      )
+      .max(
+        DRAWN_AREA.maxPoints,
+        `Área desenhada: use de ${DRAWN_AREA.minPoints} a ${DRAWN_AREA.maxPoints} pontos.`,
+      )
+      .nullish(),
     types: z.array(z.enum(PROPERTY_TYPES)).nullish(),
     price: rangeSchema("Valor do imóvel"),
     monthlyCost: rangeSchema("Condomínio + IPTU"),

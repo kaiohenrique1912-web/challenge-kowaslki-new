@@ -3,6 +3,7 @@ import type { PropertyType } from "../domain/property.ts";
 import {
   type BoundingBox,
   DEFAULT_SORT,
+  type LatLng,
   type PublishedWithin,
   type SortOrder,
 } from "../domain/search.ts";
@@ -41,6 +42,11 @@ export type SearchState = {
   /** Área do mapa fixada pelo usuário ao mover o mapa; quando existe, a lista filtra por ela. */
   mapArea?: BoundingBox;
   mapZoom?: number;
+  /**
+   * "Desenhar área de busca": polígono desenhado no mapa. Quando existe, substitui bairro e área
+   * do mapa — lista e clusters ficam só dentro dele (business-rules §4.1).
+   */
+  drawnArea?: LatLng[];
   filters: PropertyFilters;
   /** "Ver favoritos": só imóveis favoritados pelo usuário (x-user-id). */
   onlyFavorites?: boolean;
@@ -75,6 +81,7 @@ export function countActiveFilters(filters: PropertyFilters): number {
 
 /**
  * Filtros enviados à API (docs/architecture.md §7.2):
+ * - com área desenhada, lista e mapa filtram pelo polígono (e só por ele, quanto a local);
  * - `list`: com área do mapa fixada, filtra SÓ pela área (o bairro continua só como contexto);
  *   sem ela, filtra pelos bairros.
  * - `map`: nunca envia bairros — os clusters mostram também imóveis de outros bairros; a área vem
@@ -99,6 +106,7 @@ export function toApiFilters(state: SearchState, mode: "list" | "map"): SearchFi
     ...(f.amenities && { amenities: f.amenities }),
     ...(state.onlyFavorites && { onlyFavorites: true }),
   };
+  if (state.drawnArea) return { ...filters, polygon: state.drawnArea };
   if (mode === "map") return filters;
   if (state.mapArea) return { ...filters, bbox: state.mapArea };
   if (state.neighborhoodSlugs.length > 0) {

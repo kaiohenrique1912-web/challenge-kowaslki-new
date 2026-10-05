@@ -16,7 +16,7 @@
 .qa-search-layout__list {
   min-width: 0;
   overflow-y: auto;
-  padding: var(--qa-space-6) var(--qa-space-8) var(--qa-space-12);
+  padding: var(--qa-space-10) var(--qa-space-12) var(--qa-space-12);
 }
 
 .qa-search-layout__map {

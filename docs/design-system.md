@@ -6,14 +6,16 @@
 > existe CSS de **layout/posicionamento** (grade da lista, sobreposições do mapa), e só com tokens
 > — nenhuma aparência de componente.
 >
-> Referência visual: prints em [docs/reference/](reference/) (`tela_apos_busca.jpeg`,
-> `mais_filtros*.jpeg`, `abrir_oferta*.png`, `mapa_zoom_out.png`).
+> Referência visual: prints em [docs/reference/](reference/) (`busca_compra.png`,
+> `tela_apos_busca.jpeg`, `mais_filtros*.jpeg`, `mais_filtros_compra.png`, `abrir_oferta*.png`,
+> `mapa_zoom_out.png`, `area_desenhada.png`, `criar_alerta.png`, `buscar_imoveis.jpeg`).
+> Conferir: `bun run visual` (skill `/conferir-visual`) gera o lado a lado original × nosso.
 
 ## 1. Como usar
 
 ```tsx
 // Uma vez, na raiz da app (apps/web/src/main.tsx):
-import "@qa/ui/styles.css"; // fonte Inter (local), tokens e base
+import "@qa/ui/styles.css"; // fonte Albert Sans (local), tokens e base
 
 // Nos componentes:
 import { Button, PropertyCard, tokens } from "@qa/ui";
@@ -31,18 +33,24 @@ tokens` dentro de `packages/ui`); um teste falha se os dois divergirem e outro f
 CSS usar uma variável `--qa-*` inexistente. Para mudar uma cor: edite `tokens.ts` → `bun run
 tokens` → confira no Storybook (`Foundations/Tokens`).
 
+**De onde vêm os valores:** do CSS público do QuintoAndar (variáveis `--tokens-base-*`: cores
+`blue-400` = primária, `blueGray-*` = cinzas, base tipográfica de **15 px**, pesos 400/600,
+raios 8/16/pílula). A fonte do original (**Oatmeal Pro**) é paga; usamos **Albert Sans**, a mais
+parecida entre as gratuitas comparadas. Os prints foram tirados com o Windows em 125%: 1 px de
+print = 0,8 px CSS — por isso `bun run visual` usa `deviceScaleFactor` 1,25.
+
 | Grupo | Exemplos (CSS) | Uso |
 |---|---|---|
-| Cor da marca | `--qa-color-primary` `#3b5bc2`, `-hover`, `-pressed`, `-subtle` `#eef1fc`, `-border` | Botão principal, chip/pílula selecionada (fundo `subtle` + borda `border` + texto `primary`), links |
-| Texto | `--qa-color-text` `#1f1f1f`, `-muted` `#5c5c5c`, `-subtle`, `-inverse` | Título, texto de apoio (condomínio, endereço), placeholder |
-| Superfície | `--qa-color-surface` (branco), `-muted` `#f3f3f3` (pílulas cinza), `-hover`, `-inverse` (tooltip) | Fundos |
-| Borda | `--qa-color-border` `#d9d9d9`, `-strong`, `--qa-color-divider` | Inputs, separadores |
+| Cor da marca | `--qa-color-primary` `#3957bd`, `-hover`, `-pressed`, `-subtle` `#f0f3ff`, `-border` `#d2dbf8` | Botão principal, chip/pílula selecionada (fundo `subtle` + borda `border` + texto `primary`), links, slider |
+| Texto | `--qa-color-text` `#000`, `-muted` `#575763`, `-subtle` `#737380`, `-inverse` | Título, texto de apoio (condomínio, endereço), placeholder |
+| Superfície | `--qa-color-surface` (branco), `-muted` `#f5f5f7` (chips, campos, hero do detalhe), `-hover`, `-inverse` | Fundos |
+| Borda | `--qa-color-border` `#d7d7dd`, `-strong`, `--qa-color-divider` | Inputs, separadores |
 | Estado | `danger`, `success`, `warning`, `favorite` (coração), `map-pin` (pino vermelho) | Erros, selos, mapa |
-| Tipografia | `--qa-font-family` (Inter), `--qa-font-size-xs…3xl` (12 → 44 px), `--qa-font-weight-*` | 12 badges · 14 chips/endereço · 16 texto · 18 preço do card · 32 preço do detalhe |
+| Tipografia | `--qa-font-family` (Albert Sans), `--qa-font-size-xs…3xl` (12 · 13 · **15** · 20 · 26,7 · 35,5 · 47,4 px), `--qa-font-weight-*` (só 400 e 600, como o original), `--qa-letter-spacing-tight/-tighter` | 12 chips/selos · 13 título do card · 15 texto · 20 preço do card e títulos de seção · 35,5 preço do detalhe · 47 título hero |
 | Espaço | `--qa-space-1…16` (4 px → 64 px) | Margens e gaps — sempre múltiplos de 4 |
 | Raio | `sm` 4 · `md` 8 (inputs, badges) · `lg` 12 (cards, fotos) · `xl` 16 (modais) · `pill` (botões, chips) | |
 | Sombra | `sm`, `md` (botões sobre foto/mapa), `lg` (modal/drawer), `map` (bolhas do mapa) | |
-| Controle | `--qa-control-sm` 36 px, `--qa-control-md` 48 px | Altura de botões, inputs e chips |
+| Controle | `--qa-control-sm` 36 px, `--qa-control-md` 48 px, `--qa-control-lg` 56 px | Botões e inputs (md); chips e campo de local da barra (lg) |
 | Outros | `--qa-z-index-*`, `--qa-duration-fast/normal`, `--qa-focus-ring` | Camadas, animações, foco visível |
 
 **Breakpoints** (`breakpoints` em TS; literais nos `@media`, porque CSS vars não funcionam em
@@ -53,14 +61,15 @@ desktop/notebook (≥ 1280 px, testar também 1366×768); mobile (< 768 px) tem 
 
 | Componente | Quando usar | Não usar para |
 |---|---|---|
-| `Button` | Ações. `primary`: a ação principal da área (uma por região: "Buscar imóveis", "Ver 13 imóveis", "Agendar visita"). `secondary`: apoio ("Mais relevantes", "Ver mais", "Fazer proposta"). `outline`: alternativa com borda ("Converse conosco agora"). `link`: ação textual ("Limpar"). Props: `size`, `loading`, `iconLeft/Right`, `fullWidth`. | Navegar para outra página (use `<a>`) |
+| `Button` | Ações. `primary`: a ação principal da área (uma por região: "Buscar imóveis", "Ver 13 imóveis", "Agendar visita"). `secondary`: apoio ("Mais relevantes", "Ver mais", "Fazer proposta", "Entrar", "Criar alerta de imóvel"). `outline`: alternativa com borda ("Converse conosco agora", "Desenhar área de busca"). `link`: ação textual azul ("Limpar"). `ghost`: texto preto sem fundo ("Favoritos" no cabeçalho, "Compartilhar"). Props: `size`, `loading`, `iconLeft/Right`, `fullWidth`. | Navegar para outra página (use `<a>`) |
 | `IconButton` | Botão só com ícone ("×" fechar, setas, compartilhar). `label` é obrigatório. `surface` sobre fotos/mapa. | Favorito (use `FavoriteButton`) |
 | `Input` | Texto/número com `label` sempre (esconda com `hideLabel`), `prefix` "R$", `suffix` "m²", `hint`, `error`, `invalid`. `appearance="pill"` = campo de busca da barra. | Faixa mínimo/máximo (use `RangeField`) |
 | `Select` | Lista curta de opções exclusivas, com teclado nativo (ex.: ordenação no mobile). | Menos de 5 opções visíveis (use `SegmentedControl` / `CounterSelector`) |
 | `Checkbox` | Múltipla escolha: tipos de imóvel, comodidades (grade de 2 colunas). | Liga/desliga imediato (use `Toggle`) |
-| `Toggle` | Liga/desliga com efeito imediato ("Buscar ao mover o mapa"). `role="switch"`. | Filtros "Tanto faz / Sim / Não" (use `SegmentedControl` com 3 opções) |
+| `Toggle` | Liga/desliga com efeito imediato (canais do alerta: "Notificações no app", "Whatsapp"). `role="switch"`. | Filtros "Tanto faz / Sim / Não" (use `SegmentedControl` com 3 opções) |
 | `Chip` | Pílula clicável: filtro rápido com menu (`hasMenu`), opção alternável (`selected`), filtro ativo removível (`onRemove`, sobre o mapa). | Ação principal (use `Button`) |
-| `SegmentedControl` | 2–4 opções exclusivas lado a lado: "Alugar/Comprar", "Lista/Mapa", "Tanto faz/Sim/Não". Setas do teclado navegam. | Mínimos 1+/2+ (use `CounterSelector`) |
+| `SegmentedControl` | 2–4 opções exclusivas lado a lado em pílula: "Buscar imóveis/Anunciar imóveis" (home), "Lista/Mapa", "Tanto faz/Sim/Não". Setas do teclado navegam. | Mínimos 1+/2+ (use `CounterSelector`); abas de texto (use `TabBar`) |
+| `TabBar` | Abas de texto com sublinhado azul na ativa: "Alugar \| Comprar" da home. `role="tablist"`. | Escolha em pílula (use `SegmentedControl`) |
 | `CounterSelector` | Pílulas "Tanto faz · 1+ · 2+ · 3+ · 4+" — quartos, banheiros, suítes, vagas. `value=null` = Tanto faz; `allowAny` controla essa opção. Use `MIN_COUNT_FILTER_MAX` de `shared` para o `max`. | |
 | `RangeSlider` | Duas alavancas (mínimo/máximo) sobre uma escala. Normalmente via `RangeField`. | |
 | `RangeField` | Faixa "Mínimo / Máximo" + slider: Valor do imóvel, Condomínio + IPTU, Área. Campo vazio = `null` (sem limite). Recebe `error` — calcule com `searchFiltersSchema` de `shared` (mesma mensagem da API). | |
@@ -78,7 +87,7 @@ desktop/notebook (≥ 1280 px, testar também 1366×768); mobile (< 768 px) tem 
 | `Breadcrumb` | Trilha "Início › São Paulo › Bairro › Rua › Imóvel N"; o último item é a página atual. `onNavigate` para o React Router. | Navegação principal (use `AppHeader`) |
 | `ExpandableText` | Texto longo recolhido em N linhas com "Ver mais / Ver menos" (`aria-expanded`). Ex.: descrição do proprietário. | Conteúdo com estrutura (use seções) |
 | `Pagination` | Páginas numeradas em listas de tamanho fixo. **A busca não usa** — usa "Ver mais" (`Button variant="secondary"`), por causa do cursor. | Busca de imóveis |
-| `Icon` | Ícones de linha (24 px, traço 1.75). Lista em `ICON_NAMES` / story `Base/IconButton › Icon Gallery`. Decorativo por padrão; passe `title` se for informativo. | |
+| `Icon` | Ícones de linha (24 px, traço 1.75), incluindo `user` (Entrar), `bell` (alerta), `hand` (desenhar), `chat` (Converse conosco), `ban` (item indisponível), `clock` (publicado há). Lista em `ICON_NAMES` / story `Base/IconButton › Icon Gallery`. Decorativo por padrão; passe `title` se for informativo. | |
 
 ## 4. Componentes de domínio
 
@@ -93,19 +102,20 @@ Recebem dados no formato da API (campos de `searchProperties`/`property`) e usam
 | `PropertyBadges` | Selos na ordem de prioridade de `business-rules §5`, até `limit` (card: 2). | `badges: PropertyBadge[]` (vêm da API), `limit`, `tone`. |
 | `PriceTag` | Preço de venda + linha mensal; preço anterior riscado quando caiu. | `salePrice`, `monthlyCost`, `previousPrice?`, `size` (`sm` card, `lg` detalhe). |
 | `FavoriteButton` | Coração (`aria-pressed`); não propaga o clique para o card. | `favorite`, `onToggle`, `variant` (`plain`/`surface`), `showLabel` ("Favoritar" no detalhe). |
-| `FilterBar` | Barra do topo: localização + chips rápidos (cada um abre um `Popover` com o seu filtro) + "Mais filtros" (com contador). Só apresentação. | `location` ou `locationSlot` (autocomplete do web), `quickFilters: {id, label, active, panel?, panelFooter?}[]` (rótulo/ativo via `quickFilterLabel` de `@qa/shared`), `openFilterId` + `onOpenFilterChange`, `onMoreFilters`, `activeCount` (`countActiveFilters`), `trailing`. |
+| `FilterBar` | Barra do topo: localização + chips rápidos com rolagem e setas ‹ › (cada um abre um `Popover` com o seu filtro) + "Mais filtros" + `trailing` ("Criar alerta de imóvel"). Só apresentação. | `location` ou `locationSlot` (autocomplete do web), `quickFilters: {id, label, active, panel?, panelFooter?}[]` (rótulo/ativo via `quickFilterLabel` de `@qa/shared`), `openFilterId` + `onOpenFilterChange`, `onMoreFilters`, `activeCount` (`countActiveFilters`), `trailing`. |
 | `FilterPanel` | Todos os filtros de atributo, na ordem do "Mais filtros" do original (valor, condomínio + IPTU, tipos, data, quartos/banheiros/vagas, área, mobiliado/metrô/exclusivos/suítes, compre já alugado, 7 categorias de comodidades). Controlado: `value`/`onChange` com `PropertyFilters` de `@qa/shared`; erros de faixa vêm de `validatePropertyFilters`. | Use dentro de `Drawer`; o rodapé é do dono. |
 | Seções do painel | `PriceFilter`, `MonthlyCostFilter`, `AreaFilter`, `PropertyTypesFilter`, `PublishedWithinFilter`, `MinCountFilter field=…`, `YesNoFilter field=…`, `RentedFilter`, `AmenitiesFilter` — mesma assinatura (`value`, `onChange`); reaproveitadas nos popovers dos chips rápidos. | Um formulário de cadastro pode reaproveitar `PropertyTypesFilter`/`AmenitiesFilter` como referência visual. |
 | `SearchLayout` | Esqueleto da página de busca: `header`, `filters`, `list` (rolável) e `map` (40%, isolado); abaixo de 768 px vira uma coluna com botão flutuante "Lista \| Mapa" (`mobileView`/`onMobileViewChange`). | |
 | `ResultsHeader` | "7.887 Apartamentos" + "com 3 quartos à venda em…" (`searchResultsHeading` de `@qa/shared`), `loading` (skeleton), `actions` (ex.: `SortMenu`). | |
 | `SortMenu` | Botão "Mais relevantes ▾" com as 6 ordenações (`menuitemradio`: ↓/↑ movem o foco, Enter escolhe e fecha). | `value`, `onChange`, `options?`. |
-| `AppHeader` | Cabeçalho do site: marca, links (`active`), `actions`. `onNavigate` para o React Router. | |
+| `AppHeader` | Cabeçalho do site no estilo do original: logo, menu com ⌄ (`links`: `href` vira link, sem `href` vira botão com `onClick`), `actions` (Favoritos, Entrar). `compactBrand` + `search` = cabeçalho do detalhe (só o símbolo + "Rua, bairro ou código"). | `onNavigate` para o React Router. |
+| `SearchAlertDialog` | Modal "Escolha onde quer receber novos imóveis dessa busca" (`criar_alerta.png`): grupos de `Toggle` por canal (de `ALERT_CHANNEL_GROUPS`), texto de apoio, "Criar alerta de imóveis"; estado "Alerta criado!". | `open`, `onClose`, `onSubmit(channels)`, `status` (`idle`/`saving`/`saved`/`error`), `errorMessage`. Gravar é do web. |
 | `PropertyGallery` | Galeria do detalhe: duas fotos lado a lado (uma no mobile) com setas; "N Fotos"/clique abre o visualizador (modal com ← →, contador e miniaturas); "Mapa" (`onShowMap`). `actions` = botões sobre a foto. | `photos`, `alt`, `actions?`, `onShowMap?`. |
 | `PriceSummary` | Card de preços da lateral do detalhe: linhas com dica (ⓘ), total, nota, ações e rodapé. | `rows`/`total` de `priceSummary()` (@qa/shared), `note?`, `actions?`, `footer?`. |
 | `PropertyFeatures` | Grade de características com ícones ("90 m²", "Sem vaga", "Aceita pet"…). | `features` de `propertyFeatures()` (@qa/shared). |
 | `AmenityList` | "Itens disponíveis" (✓) × "Itens indisponíveis" (riscados, até `unavailableLimit`). | `available`/`unavailable` = `Property.amenities`/`unavailableAmenities`. |
 | `AddressCard` | Endereço público (rua + "Bairro, São Paulo") com seta; clique leva ao mapa. | `street`, `place`, `onClick`. |
-| `MapCluster` | Bolha branca com a contagem (igual ao original, inclusive "1"); azul quando `highlighted`. | `count`, `highlighted`, `onClick`, `interactive` (padrão `true` = `<button>`). No Leaflet use `interactive={false}` dentro de `L.divIcon({ html: renderToStaticMarkup(...) })` — o marcador do Leaflet é que é focável; dê a ele `aria-label` de `mapClusterLabel(count)`. `formatClusterCount` → "1,2 mil". |
+| `MapCluster` | Bolha branca com a contagem (igual ao original, inclusive "1"), sem quebrar linha ("1,2 mil" vira pílula); azul quando `highlighted`. | `count`, `highlighted`, `onClick`, `interactive` (padrão `true` = `<button>`). No Leaflet use `interactive={false}` dentro de `L.divIcon({ html: renderToStaticMarkup(...) })` — o marcador do Leaflet é que é focável; dê a ele `aria-label` de `mapClusterLabel(count)`. `formatClusterCount` → "1,2 mil". |
 | `MapPin` | Pino vermelho do local buscado (centro do bairro). | `label`. |
 
 Dados de exemplo para stories/testes: `packages/ui/src/fixtures/properties.ts`.
@@ -147,10 +157,12 @@ Dados de exemplo para stories/testes: `packages/ui/src/fixtures/properties.ts`.
 | Tela do original | Componentes |
 |---|---|
 | Página inteira | `SearchLayout` + `AppHeader` |
-| Barra de filtros (`tela_apos_busca.jpeg`) | `FilterBar` (`Combobox` de localização + `Chip hasMenu` com `Popover` + "Mais filtros") |
+| Home (`buscar_imoveis.jpeg`) | `AppHeader` + card com `SegmentedControl`, `TabBar`, `Combobox`, `Select` ×2, `Button` |
+| Barra de filtros (`busca_compra.png`, `tela_apos_busca.jpeg`) | `FilterBar` (`Combobox` de localização + `Chip hasMenu` com `Popover` + "Mais filtros" + `Button secondary` "Criar alerta de imóvel") |
+| Modal de alerta (`criar_alerta.png`) | `SearchAlertDialog` |
 | Cabeçalho da lista ("11 imóveis", "Mais relevantes") | `ResultsHeader` + `SortMenu` |
 | Card | `PropertyCard` (`PhotoCarousel`, `PropertyBadges`, `PriceTag`, `FavoriteButton`) |
-| Mapa | `MapCluster`, `MapPin`, `Chip onRemove` (filtros sobre o mapa), `Toggle` "Buscar ao mover o mapa", `PropertyCard` (prévia ao clicar num "1") |
-| Painel "Mais filtros" (`mais_filtros*.jpeg`) | `Drawer` + `FilterPanel` (`RangeField`, `Checkbox` em grade, `CounterSelector`, `ChoiceChips`, `Toggle`) + rodapé com `Button link` "Limpar" e `Button` "Ver N imóveis" |
+| Mapa (`mapa_zoom_out.png`, `area_desenhada.png`) | `MapCluster`, `MapPin`, `Chip onRemove` (filtros sobre o mapa), `Button outline` "Desenhar área de busca"/"Apagar desenho", `PropertyCard` (prévia ao clicar num "1") |
+| Painel "Mais filtros" (`mais_filtros*.jpeg`) | `Drawer side="left"` com `hideTitle` + `FilterPanel` (`RangeField`, `Checkbox` em grade, `CounterSelector`, `ChoiceChips`, `Toggle`) + rodapé com `Button link` "Limpar" e `Button` "Ver N imóveis" |
 | Lista vazia / erro | `StatusMessage` |
-| Detalhe (`abrir_oferta*.png`) | `PropertyGallery` (+ `IconButton` compartilhar, `FavoriteButton variant="surface"`), `PropertyBadges`, `Breadcrumb`, `AddressCard`, `PropertyFeatures`, `Badge` ("Imóvel 1601406"), `ExpandableText`, `AmenityList`, `PriceSummary` (+ `FavoriteButton showLabel`), `Modal` (ações fora do escopo) |
+| Detalhe (`abrir_oferta*.png`) | `AppHeader compactBrand search`, `PropertyGallery` (+ `IconButton` compartilhar, `FavoriteButton variant="surface"`), `Breadcrumb`, `AddressCard`, `PropertyFeatures`, `Badge` ("Imóvel 1601406"), `ExpandableText`, `AmenityList`, `PriceSummary` (+ `FavoriteButton showLabel`, `Button ghost` "Compartilhar"); ações fora do escopo usam o aviso único do web (`useOutOfScope`) |

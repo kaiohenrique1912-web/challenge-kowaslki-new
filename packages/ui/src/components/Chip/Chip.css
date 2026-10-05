@@ -6,7 +6,7 @@
   border-radius: var(--qa-radius-pill);
   background: var(--qa-color-surface-muted);
   color: var(--qa-color-text);
-  font-size: var(--qa-font-size-sm);
+  font-size: var(--qa-font-size-xs);
   font-weight: var(--qa-font-weight-semibold);
   white-space: nowrap;
   cursor: pointer;
@@ -16,7 +16,7 @@
 }
 
 .qa-chip--md {
-  min-height: var(--qa-control-md);
+  min-height: var(--qa-control-lg);
   padding: 0 var(--qa-space-5);
 }
 

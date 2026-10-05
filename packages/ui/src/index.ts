@@ -57,6 +57,7 @@ export {
   StatusMessage,
   type StatusMessageProps,
 } from "./components/StatusMessage/StatusMessage.tsx";
+export { TabBar, type TabBarItem, type TabBarProps } from "./components/TabBar/TabBar.tsx";
 export { Tag, type TagProps } from "./components/Tag/Tag.tsx";
 export { Toggle, type ToggleProps } from "./components/Toggle/Toggle.tsx";
 export { Tooltip, type TooltipProps } from "./components/Tooltip/Tooltip.tsx";
@@ -123,6 +124,10 @@ export {
   type PropertyGalleryProps,
 } from "./domain/PropertyGallery/PropertyGallery.tsx";
 export { ResultsHeader, type ResultsHeaderProps } from "./domain/ResultsHeader/ResultsHeader.tsx";
+export {
+  SearchAlertDialog,
+  type SearchAlertDialogProps,
+} from "./domain/SearchAlertDialog/SearchAlertDialog.tsx";
 export {
   SearchLayout,
   type SearchLayoutProps,

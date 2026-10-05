@@ -65,18 +65,20 @@ apps/
           property-where.ts     # ÚNICO lugar que traduz filtros → SQL
           sort.ts               # ordenações + encode/decode do cursor
           property-record.ts    # PropertyRecord (parent dos resolvers) + mapeamento da linha
+          property-row.ts       # PropertyInput → colunas de `properties` (seed e cadastro)
           *.test.ts
         neighborhoods/          # ✅ record, repository (inclui busca por nome), resolvers
         locations/              # ✅ autocomplete: service + repository (ruas)
         health/                 # ✅
         favorites/              # ✅ addFavorite/removeFavorite/favoritesCount (x-user-id)
+        search-alerts/          # ✅ createSearchAlert/searchAlerts ("Criar alerta de imóvel")
         photos/                 # ✅ GET /static/photos/{room}-{variant}.svg (placeholders)
       testing/test-app.ts       # ✅ banco em memória com 5.000 imóveis + gql() para testes
       bench/search-bench.ts     # ✅ `bun run bench` — tempos com o banco de 60k
       db/                       # ✅ Etapa 2
         client.ts               # openDatabase() — WAL, foreign_keys=ON; DB_PATH sobrescreve
         migrate.ts              # runMigrations() + CLI `bun run db:migrate`
-        migrations/0001_init.sql …
+        migrations/0001_init.sql, 0002_search_alerts.sql …
         maintenance/recompute.ts  # medianas, aluguel estimado, relevância (CLI recompute-scores)
         seed/
           neighborhoods.ts      # 102 bairros reais (centro, R$/m², raio, perfil, metrô)
@@ -88,16 +90,21 @@ apps/
     data/app.db                 # gerado; fora do git
   web/                        # ✅ Etapa 5
     codegen.ts                  # cliente GraphQL tipado (client preset, documentMode string)
-    e2e/smoke.ts                # `bun run e2e`: fluxos no Chrome/Edge real (puppeteer-core)
+    e2e/browser.ts              # Playwright com o Chrome/Edge instalado (launchBrowser, settle)
+    e2e/smoke.ts                # `bun run e2e`: 24 fluxos no navegador real
+    e2e/visual.ts               # `bun run visual`: nosso site × prints do original, lado a lado
     src/
       main.tsx                  # QueryClientProvider + RouterProvider + "@qa/ui/styles.css"
       router.tsx                # rotas (§8)
       graphql/operations.ts     # TODAS as operações (graphql`…`); generated/ = codegen
       lib/                      # graphql-client (erros com field), user-id, query-client, hooks,
-                                #   navigation (última busca para o "Voltar")
+                                #   navigation (última busca para o "Voltar"), map-tiles
       styles/map-markers.css    # posição dos marcadores do Leaflet (busca e detalhe)
       features/
-        layout/                 # SiteHeader (AppHeader + router), NotFoundPage
+        layout/                 # SiteHeader (menu do original), NotFoundPage, out-of-scope
+                                #   (OutOfScopeProvider + useOutOfScope: aviso de fora do escopo)
+        home/                   # HomePage (/): card "Buscar imóveis" → abre a busca
+        search-alerts/          # SearchAlertButton: botão + SearchAlertDialog + mutation
         search/                 # SearchPage = SearchLayout + SearchFilters + ResultsList + SearchMap
           use-search-state.ts   # estado da busca = URL (parse/serialize de @qa/shared)
           queries.ts            # hooks TanStack Query (lista infinita, contagem, mapa, bairros…)
@@ -115,10 +122,14 @@ packages/
                                 #    aplicabilidade), limits.ts (faixas, limites de SP),
                                 #    derived.ts (aluguel estimado, retorno, badges, relevância)
                                 #    search.ts (ordenações, publicação, página, limites),
-                                #    map-grid.ts (cellSizeForZoom, cellOf, clusterId)
+                                #    map-grid.ts (cellSizeForZoom, cellOf, clusterId),
+                                #    drawn-area.ts (polígono: isInsidePolygon, simplifyPolygon),
+                                #    neighborhood-locator.ts (findNeighborhoodForPoint),
+                                #    search-alert.ts (canais do alerta)
     validation/                 # ✅ property.ts (propertyInputSchema), search.ts
                                 #    (searchFiltersSchema, searchArgsSchema, mapClustersArgsSchema,
-                                #    locationSuggestionsArgsSchema)
+                                #    locationSuggestionsArgsSchema), search-alert.ts
+                                #    (searchAlertInputSchema)
     format/                     # ✅ text.ts (normalizeText, slugify, formatCep),
                                 #    property-text.ts (formatBRL, formatArea, pluralize,
                                 #    propertyTitle, propertyHeadline); datas relativas depois
@@ -176,6 +187,8 @@ editado à mão. O web ganha codegen próprio na Etapa 5.
 | `map.graphql` | `MapCluster`, `MapClusterResult { clusters totalCount zoom }`; query `propertyMapClusters` |
 | `neighborhood.graphql` | `Zone`, `Neighborhood`; query `neighborhoods` |
 | `location.graphql` | `LocationSuggestion` (NEIGHBORHOOD / STREET / PROPERTY_CODE); query `locationSuggestions` |
+| `favorite.graphql` | mutations `addFavorite`/`removeFavorite`; query `favoritesCount` |
+| `search-alert.graphql` | `AlertChannel`, `SearchAlert`, `CreateSearchAlertInput`; mutation `createSearchAlert`, query `searchAlerts` |
 
 Operações disponíveis hoje:
 
@@ -193,6 +206,11 @@ health: Health!
 (idempotentes, exigem `x-user-id`; favoritar exige imóvel `ACTIVE` → senão `NOT_FOUND`) e
 `favoritesCount`. O filtro `onlyFavorites` e o campo `Property.isFavorite` leem a mesma tabela.
 
+**Alertas de busca** (`search-alert.graphql`, módulo `search-alerts`):
+`createSearchAlert(input: { searchUrl, channels })` grava (upsert por usuário + URL) e devolve
+`SearchAlert`; `searchAlerts` lista os do usuário. Tabela `search_alerts` (migração 0002). É o
+exemplo mais curto de feature ponta a ponta (shared → migração → SDL → serviço → ui → web).
+
 Mapeamento resolver → "parent" (configurado em `apps/api/codegen.ts`): `Property` recebe
 `PropertyRecord`, `Neighborhood` recebe `NeighborhoodRecord`, `PropertyConnection` recebe
 `PropertyConnectionModel` (com `countTotal()` — o `COUNT(*)` só roda se `totalCount` for pedido).
@@ -203,8 +221,9 @@ Convenções do schema:
 - Nomes em inglês, camelCase; enums UPPER_SNAKE; labels pt-BR vêm de `shared`, não do schema
   (exceto `Amenity.label` e `LocationSuggestion.label`, por conveniência). Todo campo novo tem
   descrição (`"..."`) no SDL.
-- Mutations futuras seguem `verbNoun(input: VerbNounInput!): VerbNounPayload!` (ex.:
-  `createProperty(input: CreatePropertyInput!)`). As de favoritos serão exceção histórica.
+- Mutations seguem `verbNoun(input: VerbNounInput!)` devolvendo o objeto criado/alterado (ex.:
+  `createSearchAlert(input: CreateSearchAlertInput!): SearchAlert!`,
+  `createProperty(input: CreatePropertyInput!): Property!`). As de favoritos são exceção histórica.
 - **Erros** (`apps/api/src/graphql/errors.ts`): `GraphQLError` com mensagem em pt-BR e
   `extensions.code` ∈ `BAD_USER_INPUT` | `NOT_FOUND` | `INTERNAL`. Erros de entrada trazem
   `extensions.field` (caminho do argumento, ex.: `"filters.price"`) e `extensions.issues`
@@ -423,16 +442,18 @@ páginas profundas.
 
 ## 7. Mapa
 
-Leaflet + tiles OpenStreetMap (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`, com
-atribuição). Centro padrão: Praça da Sé (-23.5505, -46.6333), zoom 12.
+Leaflet + tiles OpenStreetMap (`apps/web/src/lib/map-tiles.ts`, com atribuição). O original
+usa Google Maps (pago, exige chave); para ficar parecido, os tiles têm as cores suavizadas por
+CSS (`.leaflet-tile-pane` em `styles/map-markers.css`). Zoom em dois botões redondos no canto
+inferior direito. Centro padrão: Praça da Sé (-23.5505, -46.6333), zoom 12.
 
 ### 7.1 Clusters no servidor (agregação em grade)
 Equivalente ao supercluster, mas feito em SQL para respeitar todos os filtros sem trafegar
 milhares de pontos:
 
 1. O web envia `bbox` visível (com 20% de margem) + `zoom` + os mesmos filtros da lista.
-2. Tamanho da célula: `cell = 360 / (2^zoom × CELLS_PER_TILE)` graus, com `CELLS_PER_TILE = 2`
-   (≈ 128 px na tela — com 64 px o mapa ficava poluído, bem mais denso que o original).
+2. Tamanho da célula: `cell = 360 / (2^zoom × CELLS_PER_TILE)` graus, com `CELLS_PER_TILE = 3`
+   (≈ 85 px na tela — densidade conferida com `mapa_zoom_out.png` via `bun run visual`).
    A grade é ancorada em (-90, -180), então as células não "pulam" quando o mapa é arrastado.
 3. ```sql
    SELECT CAST((lat + 90) / :cell AS INT) AS row, CAST((lng + 180) / :cell AS INT) AS col,
@@ -473,19 +494,24 @@ milhares de pontos:
   - Mapa escondido (mobile em "Lista") tem tamanho 0: não calcula área nem enquadra; ao
     aparecer, sincroniza com a URL. A coluna do mapa tem `isolation: isolate` para os z-index
     do Leaflet não cobrirem o resto da página.
-  - Toggle **"Buscar ao mover o mapa"** (ligado por padrão, preferência salva no navegador):
-    desligado, mover só atualiza os clusters e mostra "Buscar nesta área".
+  - Não há toggle "Buscar ao mover o mapa" (o original não tem): mover sempre atualiza a lista.
+  - **Área desenhada** ("Desenhar área de busca", botão no pé do mapa): no modo desenho o
+    arraste do mapa é desligado e os eventos de ponteiro do container viram um traço
+    (`L.polyline`); ao soltar, `simplifyPolygon` (≤ 40 pontos) grava `area-desenhada` na URL e
+    apaga bairro/área do mapa. O polígono é desenhado em cinza (`DRAWN_AREA_STYLE`); com ele, o
+    `moveend` não grava área. Esc ou "Cancelar desenho" sai do modo; "Apagar desenho" remove.
 - Chips dos filtros ativos (`activeFilterChips` de `@qa/shared`) no topo do mapa, removíveis
   com × (`removeActiveFilter`).
-- **(planejado, opcional)** "Desenhar área de busca": polígono enviado como lista de pontos;
-  o servidor filtra por bbox do polígono no SQL e refina com point-in-polygon em memória.
+- **Polígono no SQL** (`property-where.ts`): retângulo do polígono (usa o índice de lat/lng) +
+  teste do raio em SQL puro — uma expressão por aresta somada, `% 2 = 1` = dentro. Assim a
+  paginação por cursor e o `COUNT` continuam exatos (nada é filtrado em memória).
 
 ## 8. Contrato da URL
 
 Rotas:
 - `/comprar/imovel` — busca em toda a cidade.
 - `/comprar/imovel/:bairroSlug` — busca num bairro (atalho SEO; equivale a `bairros=slug`).
-- `/` → redireciona para `/comprar/imovel`.
+- `/` — home: card "Buscar imóveis" (bairro/rua/código, valor até, quartos) que abre a busca.
 - `/imovel/:id` — detalhe do imóvel. O card navega na mesma aba (com `state.fromSearch`), então o
   "voltar" do navegador volta à busca com os filtros.
 - `/favoritos` → redireciona para `/comprar/imovel?favoritos=sim`.
@@ -497,6 +523,7 @@ Query string (nomes em pt-BR, valores legíveis; ausente = "Tanto faz"):
 |---|---|---|
 | `bairros` | `pinheiros,vila-madalena` | `neighborhoodSlugs` |
 | `area-mapa` | `-23.55,-46.70,-23.58,-46.66` (N,W,S,E) | `bbox` |
+| `area-desenhada` | `-23.5,-46.7;-23.5,-46.6;-23.6,-46.65` (lat,lng;…) | `polygon` (ganha de bairro e `area-mapa`) |
 | `zoom` | `14` | estado do mapa |
 | `tipos` | `apartamento,casa-condominio` | `types` (slugs: `apartamento`, `casa`, `casa-condominio`, `studio`) |
 | `preco-min` / `preco-max` | `500000` | `price` |
@@ -527,7 +554,7 @@ Valores inválidos na URL são descartados silenciosamente (a página nunca queb
   (`src/graphql/operations.ts` → `bun run codegen`) e lança `GraphQLRequestError` com
   `code`/`field`. Erros `BAD_USER_INPUT` não são repetidos automaticamente.
 - **Estado:** a busca inteira vive na URL (`useSearchState`). Fora dela só há estado de tela
-  (hover, Lista/Mapa no mobile, rascunho dos filtros, preferência "Buscar ao mover o mapa").
+  (hover, Lista/Mapa no mobile, rascunho dos filtros, modo desenho do mapa).
 - **Layout:** `SearchLayout` do `ui` — header → `FilterBar` → lista rolável (grade
   `auto-fill, minmax(240px, 1fr)`, 3 colunas em ~1440 px) | mapa (40%). CSS no web é **só de
   layout/posicionamento** e **só com tokens** (`search-page.css`); nada de componente visual.
@@ -545,24 +572,34 @@ Valores inválidos na URL são descartados silenciosamente (a página nunca queb
 - **Favoritos:** `userId` UUID gerado e salvo em `localStorage` (`lib/user-id.ts`), enviado em
   `x-user-id` em toda request. `useToggleFavorite()` atualiza na hora (otimista) a lista, a
   prévia do mapa, o detalhe e o contador do cabeçalho; desfaz se a API falhar e recarrega as
-  buscas "só favoritos". "Ver favoritos" = `?favoritos=sim` (chip na barra e link no cabeçalho).
+  buscas "só favoritos". "Ver favoritos" = `?favoritos=sim` (botão "Favoritos (N)" no cabeçalho).
+- **Fora do escopo:** o que existe no original mas não neste projeto (menus do cabeçalho,
+  "Entrar", "Agendar visita"…) chama `useOutOfScope()("Nome")` — um único modal de aviso
+  (`features/layout/out-of-scope.tsx`, provider em `main.tsx`).
 - **Desempenho da tela:** cards memorizados (`PropertyCard` e `ResultCard` com callbacks
   estáveis) — o hover só redesenha os cards afetados; o mapa troca só o ícone destacado; páginas
   carregadas sob demanda (`React.lazy`): quem abre um imóvel não baixa a busca, e vice-versa.
 - **Fotos:** URLs relativas servidas pela API em `/static/photos/…` (§5.3); o Vite faz proxy
   de `/graphql` e `/static`.
 - **Teste de ponta a ponta:** `bun run e2e` (com `bun run dev` rodando) abre o Chrome/Edge
-  instalado sem janela e percorre 20 fluxos (busca, filtros rápidos e painel, ordenação,
-  "Ver mais", voltar, chips do mapa, mover o mapa, autocomplete, vazio, erro, URL inválida,
-  favoritar, ver favoritos, detalhe com galeria, voltar mantendo filtros, desfavoritar,
-  imóvel inexistente, mobile). Prints em `apps/web/e2e/screenshots/` (fora do git).
+  instalado sem janela (Playwright, `e2e/browser.ts`) e percorre 24 fluxos (home, busca, filtros
+  rápidos e painel, ordenação, "Ver mais", voltar, chips do mapa, mover o mapa, desenhar área,
+  criar alerta, autocomplete, vazio, erro, URL inválida, favoritar, ver favoritos, detalhe com
+  galeria, aviso de fora do escopo, voltar, desfavoritar, imóvel inexistente, mobile). Prints em
+  `apps/web/e2e/screenshots/` (fora do git).
+- **Conferência visual:** `bun run visual` leva o site ao mesmo estado de cada print de
+  `docs/reference/` (janela 1536×694 com escala 1,25 — a do notebook em que os prints foram
+  tirados) e gera `apps/web/e2e/visual/<cena>.compare.png` (original × nosso) + `report.md`
+  com o checklist. Quem compara é o agente lendo as imagens (skill `/conferir-visual`), não um
+  diff de pixels: dados e mapa nunca vão bater.
 
 ## 10. Design system
 
 `packages/ui` expõe tokens como CSS custom properties (`--qa-color-primary`, …) gerados a partir
 de `tokens.ts` (fonte única), componentes base (`components/`) e de domínio (`domain/`), cada um
-com `.tsx` + `.css` (BEM `qa-`, só tokens) + `.stories.tsx`. CSS global (fonte Inter local via
-`@fontsource-variable/inter`, tokens, base) em `@qa/ui/styles.css`. Sem CSS-in-JS e sem
+com `.tsx` + `.css` (BEM `qa-`, só tokens) + `.stories.tsx`. CSS global (fonte Albert Sans local
+via `@fontsource-variable/albert-sans` — a mais próxima gratuita da Oatmeal Pro do original —,
+tokens, base) em `@qa/ui/styles.css`. Os valores dos tokens vêm do CSS público do original. Sem CSS-in-JS e sem
 dependência de UI externa. Detalhes, catálogo e receita em
 [design-system.md](design-system.md).
 
@@ -610,4 +647,8 @@ nenhum `var(--qa-…)` inexistente; o Storybook roda o addon a11y (axe).
 | Leaflet sem react-leaflet | Controle total de movimentos programáticos × do usuário (o ponto mais delicado da sincronia mapa ⇄ URL). |
 | Codegen do web com `documentMode: "string"` | Operações tipadas sem precisar do runtime `graphql` no navegador. |
 | `dev` da api roda a partir da raiz (`cd ../.. && bun --watch apps/api/src/index.ts`) | De dentro de `apps/api` o `bun --watch` não observa `packages/shared`: mudar uma regra exigiria reiniciar a api na mão. |
-| E2E com `puppeteer-core` + navegador instalado | Sem baixar navegador; roda no Windows/macOS/Linux com Chrome ou Edge. |
+| E2E e conferência visual com `playwright-core` + navegador instalado | Sem baixar navegador; roda no Windows/macOS/Linux com Chrome ou Edge; a mesma base (`e2e/browser.ts`) serve ao smoke e ao visual. |
+| Conferência visual por agente, não por diff de pixels | Dados, fotos e mapa (Google × OSM) do original nunca serão iguais; um diff acusaria tudo. O agente lê as duas imagens e lista diferenças de layout, texto, cor e componentes. |
+| Fonte Albert Sans no lugar da Oatmeal Pro | A do original é paga; Albert Sans foi a mais parecida entre 12 gratuitas comparadas lado a lado. |
+| Tiles OSM com filtro CSS | Google Maps exige chave e é pago; CARTO passou a exigir chave. OSM com cores suavizadas fica próximo do visual do original. |
+| Área desenhada filtrada no SQL | Teste do raio em SQL mantém COUNT e cursor exatos; filtrar em memória quebraria a paginação. |

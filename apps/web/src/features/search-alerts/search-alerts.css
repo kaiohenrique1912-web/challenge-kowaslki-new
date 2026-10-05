@@ -1,0 +1,5 @@
+/* Mesmo tamanho dos chips da barra de filtros. */
+.search-alert-button.qa-button {
+  flex-shrink: 0;
+  min-height: var(--qa-control-lg);
+}

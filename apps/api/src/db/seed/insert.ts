@@ -1,5 +1,10 @@
 import type { Database, SQLQueryBindings } from "bun:sqlite";
-import { normalizeText } from "@qa/shared";
+import {
+  PROPERTY_COLUMNS,
+  toAmenityRows,
+  toPhotoRows,
+  toPropertyRow,
+} from "../../modules/properties/property-row.ts";
 import type { Dataset } from "./generator.ts";
 
 type Row = SQLQueryBindings[];
@@ -64,44 +69,9 @@ export function insertDataset(db: Database, { neighborhoods, properties }: Datas
   const photoRows: Row[] = [];
   const amenityRows: Row[] = [];
   for (const p of properties) {
-    const i = p.input;
-    propertyRows.push([
-      p.id,
-      p.status,
-      i.type,
-      i.cep,
-      i.street,
-      normalizeText(i.street),
-      i.number,
-      i.complement,
-      i.neighborhoodId,
-      i.latitude,
-      i.longitude,
-      i.salePrice,
-      p.previousPrice,
-      i.condoFee,
-      i.iptu,
-      i.area,
-      i.bedrooms,
-      i.suites,
-      i.bathrooms,
-      i.parkingSpaces,
-      i.floor,
-      i.isFurnished ? 1 : 0,
-      i.acceptsPets ? 1 : 0,
-      i.nearSubway ? 1 : 0,
-      i.isExclusive ? 1 : 0,
-      i.isRented ? 1 : 0,
-      i.monthlyRent,
-      p.estimatedRent,
-      i.description,
-      i.photos.length,
-      p.publishedAt,
-      p.createdAt,
-      p.updatedAt,
-    ]);
-    for (const [position, url] of i.photos.entries()) photoRows.push([p.id, position, url]);
-    for (const code of i.amenities) amenityRows.push([p.id, code]);
+    propertyRows.push(toPropertyRow(p.input, p));
+    photoRows.push(...toPhotoRows(p.id, p.input.photos));
+    amenityRows.push(...toAmenityRows(p.id, p.input.amenities));
   }
 
   db.transaction(() => {
@@ -124,46 +94,7 @@ export function insertDataset(db: Database, { neighborhoods, properties }: Datas
       ],
       neighborhoodRows,
     );
-    bulkInsert(
-      db,
-      "properties",
-      [
-        "id",
-        "status",
-        "type",
-        "cep",
-        "street",
-        "street_normalized",
-        "number",
-        "complement",
-        "neighborhood_id",
-        "lat",
-        "lng",
-        "sale_price",
-        "previous_price",
-        "condo_fee",
-        "iptu",
-        "area",
-        "bedrooms",
-        "suites",
-        "bathrooms",
-        "parking_spaces",
-        "floor",
-        "is_furnished",
-        "accepts_pets",
-        "near_subway",
-        "is_exclusive",
-        "is_rented",
-        "monthly_rent",
-        "estimated_rent",
-        "description",
-        "photo_count",
-        "published_at",
-        "created_at",
-        "updated_at",
-      ],
-      propertyRows,
-    );
+    bulkInsert(db, "properties", [...PROPERTY_COLUMNS], propertyRows);
     bulkInsert(db, "property_photos", ["property_id", "position", "url"], photoRows);
     bulkInsert(db, "property_amenities", ["property_id", "amenity_code"], amenityRows);
   })();

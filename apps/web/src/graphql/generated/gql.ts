@@ -26,6 +26,7 @@ type Documents = {
     "\n  mutation AddFavorite($propertyId: ID!) {\n    addFavorite(propertyId: $propertyId) {\n      id\n      isFavorite\n    }\n  }\n": typeof types.AddFavoriteDocument,
     "\n  mutation RemoveFavorite($propertyId: ID!) {\n    removeFavorite(propertyId: $propertyId) {\n      id\n      isFavorite\n    }\n  }\n": typeof types.RemoveFavoriteDocument,
     "\n  query FavoritesCount {\n    favoritesCount\n  }\n": typeof types.FavoritesCountDocument,
+    "\n  mutation CreateSearchAlert($input: CreateSearchAlertInput!) {\n    createSearchAlert(input: $input) {\n      id\n      searchUrl\n      channels\n    }\n  }\n": typeof types.CreateSearchAlertDocument,
 };
 const documents: Documents = {
     "\n  fragment PropertyCardFields on Property {\n    id\n    type\n    title\n    salePrice\n    monthlyCost\n    area\n    bedrooms\n    parkingSpaces\n    street\n    badges\n    isFavorite\n    location {\n      lat\n      lng\n    }\n    neighborhood {\n      slug\n      name\n    }\n    photos(limit: 8) {\n      url\n    }\n  }\n": types.PropertyCardFieldsFragmentDoc,
@@ -39,6 +40,7 @@ const documents: Documents = {
     "\n  mutation AddFavorite($propertyId: ID!) {\n    addFavorite(propertyId: $propertyId) {\n      id\n      isFavorite\n    }\n  }\n": types.AddFavoriteDocument,
     "\n  mutation RemoveFavorite($propertyId: ID!) {\n    removeFavorite(propertyId: $propertyId) {\n      id\n      isFavorite\n    }\n  }\n": types.RemoveFavoriteDocument,
     "\n  query FavoritesCount {\n    favoritesCount\n  }\n": types.FavoritesCountDocument,
+    "\n  mutation CreateSearchAlert($input: CreateSearchAlertInput!) {\n    createSearchAlert(input: $input) {\n      id\n      searchUrl\n      channels\n    }\n  }\n": types.CreateSearchAlertDocument,
 };
 
 /**
@@ -85,6 +87,10 @@ export function graphql(source: "\n  mutation RemoveFavorite($propertyId: ID!) {
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  query FavoritesCount {\n    favoritesCount\n  }\n"): typeof import('./graphql').FavoritesCountDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation CreateSearchAlert($input: CreateSearchAlertInput!) {\n    createSearchAlert(input: $input) {\n      id\n      searchUrl\n      channels\n    }\n  }\n"): typeof import('./graphql').CreateSearchAlertDocument;
 
 
 export function graphql(source: string) {

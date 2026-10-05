@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { publishedWithinStart } from "@qa/shared";
+import { isInsidePolygon, publishedWithinStart } from "@qa/shared";
 import { createTestApp, getTestDb, gql, TEST_NOW } from "../../testing/test-app.ts";
 
 const app = createTestApp();
@@ -384,5 +384,33 @@ describe("property(id)", () => {
       expect(body.errors).toBeUndefined();
       expect(body.data?.property).toBeNull();
     }
+  });
+
+  test("área desenhada: só imóveis dentro do polígono (mesma conta de isInsidePolygon)", async () => {
+    // Triângulo sobre a zona oeste: o retângulo dele tem imóveis fora do triângulo.
+    const polygon = [
+      { lat: -23.53, lng: -46.73 },
+      { lat: -23.53, lng: -46.65 },
+      { lat: -23.6, lng: -46.73 },
+    ];
+    const all = db
+      .query<{ lat: number; lng: number }, []>(
+        "SELECT lat, lng FROM properties WHERE status = 'ACTIVE'",
+      )
+      .all();
+    const expected = all.filter((p) => isInsidePolygon(p, polygon)).length;
+    const inBox = sqlCount("p.lat BETWEEN -23.6 AND -23.53 AND p.lng BETWEEN -46.73 AND -46.65");
+    expect(expected).toBeGreaterThan(0);
+    expect(expected).toBeLessThan(inBox);
+
+    const result = await search({ filters: { polygon }, first: 48 });
+    expect(result.totalCount).toBe(expected);
+    for (const node of result.nodes) expect(isInsidePolygon(node.location, polygon)).toBe(true);
+  });
+
+  test("área desenhada com menos de 3 pontos é BAD_USER_INPUT", async () => {
+    const error = await searchError({ filters: { polygon: [{ lat: -23.5, lng: -46.6 }] } });
+    expect(error.code).toBe("BAD_USER_INPUT");
+    expect(error.message).toContain("Área desenhada");
   });
 });

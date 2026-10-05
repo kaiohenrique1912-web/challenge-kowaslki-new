@@ -33,6 +33,9 @@ type Props = {
   state: SearchState;
   setState: SetSearchState;
   neighborhoods: Map<string, NeighborhoodInfo>;
+  /** Texto com o campo vazio (padrão: "Rua, bairro ou código"). */
+  placeholder?: string;
+  icon?: "location" | "search";
 };
 
 /**
@@ -41,7 +44,13 @@ type Props = {
  * rua → contexto = bairro da rua e a lista/mapa vão para a área da rua;
  * código → abre o imóvel; "Toda a cidade" → limpa a localização.
  */
-export function LocationSearch({ state, setState, neighborhoods }: Props) {
+export function LocationSearch({
+  state,
+  setState,
+  neighborhoods,
+  placeholder = "Rua, bairro ou código",
+  icon = "location",
+}: Props) {
   const navigate = useNavigate();
   const label = locationLabel(state, neighborhoods);
   const [text, setText] = useState(label);
@@ -60,7 +69,7 @@ export function LocationSearch({ state, setState, neighborhoods }: Props) {
       icon: s.kind === "STREET" ? "map" : s.kind === "PROPERTY_CODE" ? "image" : "location",
     }));
     const wantsCity = normalizeText(CITY).startsWith(normalizeText(query).slice(0, 4));
-    if (state.neighborhoodSlugs.length > 0 || state.mapArea || wantsCity) {
+    if (state.neighborhoodSlugs.length > 0 || state.mapArea || state.drawnArea || wantsCity) {
       items.unshift({
         id: CITY_OPTION_ID,
         label: `Toda a cidade de ${CITY}`,
@@ -69,11 +78,17 @@ export function LocationSearch({ state, setState, neighborhoods }: Props) {
       });
     }
     return items;
-  }, [suggestions.data, query, state.neighborhoodSlugs.length, state.mapArea]);
+  }, [suggestions.data, query, state.neighborhoodSlugs.length, state.mapArea, state.drawnArea]);
 
   const onSelect = (option: ComboboxOption) => {
     if (option.id === CITY_OPTION_ID) {
-      setState((s) => ({ ...s, neighborhoodSlugs: [], mapArea: undefined, mapZoom: undefined }));
+      setState((s) => ({
+        ...s,
+        neighborhoodSlugs: [],
+        mapArea: undefined,
+        mapZoom: undefined,
+        drawnArea: undefined,
+      }));
       return;
     }
     const index = Number(option.id.split(":")[1]);
@@ -87,11 +102,23 @@ export function LocationSearch({ state, setState, neighborhoods }: Props) {
     if (!slug) return;
     if (suggestion.kind === "STREET" && suggestion.bounds) {
       const mapArea = pad(suggestion.bounds);
-      setState((s) => ({ ...s, neighborhoodSlugs: [slug], mapArea, mapZoom: undefined }));
+      setState((s) => ({
+        ...s,
+        neighborhoodSlugs: [slug],
+        mapArea,
+        mapZoom: undefined,
+        drawnArea: undefined,
+      }));
       setText(suggestion.label);
       return;
     }
-    setState((s) => ({ ...s, neighborhoodSlugs: [slug], mapArea: undefined, mapZoom: undefined }));
+    setState((s) => ({
+      ...s,
+      neighborhoodSlugs: [slug],
+      mapArea: undefined,
+      mapZoom: undefined,
+      drawnArea: undefined,
+    }));
   };
 
   return (
@@ -99,8 +126,8 @@ export function LocationSearch({ state, setState, neighborhoods }: Props) {
       label="Localização"
       hideLabel
       appearance="pill"
-      icon="location"
-      placeholder="Rua, bairro ou código"
+      icon={icon}
+      placeholder={placeholder}
       value={text}
       onValueChange={setText}
       options={editing ? options : []}

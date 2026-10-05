@@ -14,10 +14,9 @@ import {
   Button,
   ExpandableText,
   FavoriteButton,
+  Icon,
   IconButton,
-  Modal,
   PriceSummary,
-  PropertyBadges,
   PropertyFeatures,
   PropertyGallery,
   Skeleton,
@@ -27,6 +26,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { lastSearchUrl } from "../../lib/navigation.ts";
 import { useToggleFavorite } from "../favorites/use-favorites.ts";
+import { useOutOfScope } from "../layout/out-of-scope.tsx";
 import { SiteHeader } from "../layout/SiteHeader.tsx";
 import { PropertyLocationMap } from "./PropertyLocationMap.tsx";
 import { usePropertyDetail } from "./queries.ts";
@@ -97,7 +97,7 @@ export function PropertyPage() {
   const toggleFavorite = useToggleFavorite();
   const back = useBackToSearch(property?.neighborhood.slug);
   const { share, copied } = useShare();
-  const [outOfScope, setOutOfScope] = useState<string | null>(null);
+  const notAvailable = useOutOfScope();
   const mapRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -113,7 +113,7 @@ export function PropertyPage() {
   if (detail.isPending) {
     return (
       <>
-        <SiteHeader />
+        <SiteHeader variant="detail" />
         <DetailSkeleton />
       </>
     );
@@ -121,7 +121,7 @@ export function PropertyPage() {
   if (detail.isError) {
     return (
       <>
-        <SiteHeader />
+        <SiteHeader variant="detail" />
         <StatusMessage
           tone="error"
           title="Não foi possível carregar o imóvel"
@@ -138,7 +138,7 @@ export function PropertyPage() {
   if (!property) {
     return (
       <>
-        <SiteHeader />
+        <SiteHeader variant="detail" />
         <StatusMessage
           icon="search"
           title="Imóvel não encontrado"
@@ -156,23 +156,15 @@ export function PropertyPage() {
     favorite: property.isFavorite,
     onToggle: (favorite: boolean) => toggleFavorite(property.id, favorite),
   };
-  const notAvailable = (action: string) => () => setOutOfScope(action);
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader variant="detail" />
       <main className="property-page">
         <section className="property-hero">
           <div className="property-hero__info">
             {backButton}
             <h1 className="property-hero__title">{property.headline}</h1>
-            <div className="property-hero__badges">
-              <PropertyBadges
-                badges={property.badges}
-                limit={Number.POSITIVE_INFINITY}
-                tone="overlay"
-              />
-            </div>
             <div className="property-hero__price">
               {property.previousPrice && property.previousPrice > property.salePrice && (
                 <s className="property-hero__previous">{formatBRL(property.previousPrice)}</s>
@@ -181,9 +173,13 @@ export function PropertyPage() {
               <p className="property-hero__monthly">{monthlyCostLabel(property.monthlyCost)}</p>
             </div>
             <div className="property-hero__actions">
-              <Button onClick={notAvailable("Agendar visita")}>Agendar visita</Button>
-              <Button variant="outline" onClick={notAvailable("Fazer proposta")}>
-                Fazer proposta
+              <Button onClick={() => notAvailable("Agendar visita")}>Agendar visita</Button>
+              <Button
+                variant="outline"
+                iconLeft="chat"
+                onClick={() => notAvailable("Converse conosco agora")}
+              >
+                Converse conosco agora
               </Button>
             </div>
           </div>
@@ -223,12 +219,15 @@ export function PropertyPage() {
                 navigate(href);
               }}
             />
-            <AddressCard street={property.street} place={place} onClick={showMap} />
+            <div className="property-address">
+              <AddressCard street={property.street} place={place} onClick={showMap} />
+            </div>
             <PropertyFeatures features={propertyFeatures(property)} />
             <div className="property-meta">
               <Badge>Imóvel {property.id}</Badge>
               {property.publishedAt && (
                 <span className="property-meta__date">
+                  <Icon name="clock" size={14} />
                   {formatPublishedAgo(property.publishedAt)}
                 </span>
               )}
@@ -267,10 +266,14 @@ export function PropertyPage() {
               }
               actions={
                 <>
-                  <Button fullWidth onClick={notAvailable("Agendar visita")}>
+                  <Button fullWidth onClick={() => notAvailable("Agendar visita")}>
                     Agendar visita
                   </Button>
-                  <Button fullWidth variant="secondary" onClick={notAvailable("Fazer proposta")}>
+                  <Button
+                    fullWidth
+                    variant="secondary"
+                    onClick={() => notAvailable("Fazer proposta")}
+                  >
                     Fazer proposta
                   </Button>
                 </>
@@ -278,7 +281,7 @@ export function PropertyPage() {
               footer={
                 <>
                   <FavoriteButton {...favoriteProps} showLabel />
-                  <Button variant="link" iconLeft="share" onClick={() => share(property.headline)}>
+                  <Button variant="ghost" iconLeft="share" onClick={() => share(property.headline)}>
                     {copied ? "Link copiado!" : "Compartilhar"}
                   </Button>
                 </>
@@ -287,18 +290,6 @@ export function PropertyPage() {
           </div>
         </div>
       </main>
-
-      <Modal
-        open={outOfScope !== null}
-        onClose={() => setOutOfScope(null)}
-        title={outOfScope ?? ""}
-        footer={<Button onClick={() => setOutOfScope(null)}>Entendi</Button>}
-      >
-        <p>
-          Esta demonstração cobre a busca de imóveis. "{outOfScope}" não está disponível — use o
-          coração para guardar o imóvel nos seus favoritos.
-        </p>
-      </Modal>
     </>
   );
 }

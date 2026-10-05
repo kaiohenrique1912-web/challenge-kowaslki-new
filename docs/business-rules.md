@@ -124,6 +124,7 @@ entre si com **E**. Filtro ausente = "Tanto faz".
 |---|---|---|---|
 | Localização — bairros | `neighborhoodSlugs` | Imóvel pertence a **qualquer** dos bairros (OU). | Slugs existentes; até 10. |
 | Localização — área do mapa | `bbox` | `south ≤ lat ≤ north` e `west ≤ lng ≤ east`. | `north > south`, `east > west`, dentro de lat ±90 / lng ±180. |
+| Localização — área desenhada | `polygon` | Ponto dentro do polígono (teste do raio: cruza um número ímpar de arestas). `isInsidePolygon` em shared = mesma conta do SQL. | 3 a 40 pontos (`DRAWN_AREA`); o traço do mouse é simplificado com `simplifyPolygon`. |
 | Tipos de imóvel | `types` | Tipo ∈ lista (OU). | Valores do enum. |
 | Valor do imóvel | `price {min,max}` | `min ≤ salePrice ≤ max` (limites inclusivos; qualquer lado opcional). | `0 ≤ min ≤ max`. |
 | Condomínio + IPTU | `monthlyCost {min,max}` | Sobre `condoFee + iptu`. | `0 ≤ min ≤ max`. |
@@ -154,6 +155,32 @@ API é literal. **Na busca (comportamento do original, validado):**
   mapa; escolher uma **rua** usa o bairro da rua como contexto e a área em volta da rua como
   filtro; um **código** abre o imóvel; "Toda a cidade de São Paulo" remove bairro e área.
 - Mudar filtros mantém o contexto de localização; mudar a localização mantém os filtros.
+- **Mover o mapa sempre atualiza a lista** (não há botão "Buscar ao mover o mapa", como no
+  original).
+- **"Desenhar área de busca"** (botão no pé do mapa): o usuário arrasta o mouse e o traço vira
+  um polígono. Com ele, lista, contagem e clusters ficam **só dentro do polígono**; o bairro e a
+  área do mapa saem da busca; mover o mapa não muda mais a lista; o campo de local mostra
+  "Área desenhada no mapa" e o subtítulo vira "à venda na área desenhada no mapa". "Apagar
+  desenho" volta para a cidade inteira; escolher um bairro/rua no campo apaga o desenho.
+
+### 4.4 Chips rápidos da barra de filtros
+
+Na ordem do original (`QUICK_FILTERS` em shared): Valor, Tipos de imóvel, Quartos, Vagas de
+garagem, Banheiros, Área, Mobiliado, Próximo ao metrô, Suítes. O chip mostra o nome do filtro
+ou o valor escolhido ("1+ banheiros", "Mobiliado"), com setas ‹ › quando não cabem. Depois
+deles: "Mais filtros" (painel lateral à esquerda) e "Criar alerta de imóvel".
+
+### 4.5 Alertas de busca ("Criar alerta de imóvel")
+
+- Guarda a **URL da busca atual** (`/comprar/imovel…`) para o usuário (o mesmo `userId` anônimo
+  dos favoritos), com os canais escolhidos: `APP` "Notificações no app" e `WHATSAPP`
+  "Whatsapp" (assim que o imóvel chegar) e `EMAIL` "E-mail" (imóveis que chegaram no dia).
+- Ao abrir o modal, APP e E-mail vêm ligados (`DEFAULT_ALERT_CHANNELS`). Pelo menos um canal.
+- Um alerta por usuário e URL: criar de novo a mesma busca só troca os canais.
+- O envio das notificações e a página de alertas criados estão **fora do escopo**; o alerta
+  fica registrado (query `searchAlerts`).
+- Validação: `searchAlertInputSchema` (URL da busca de compra, até 2.000 caracteres; canais sem
+  repetição).
 
 Erros de validação são retornados como erro GraphQL com `extensions.code = "BAD_USER_INPUT"`,
 `extensions.field` com o caminho do argumento (ex.: `"filters.price"`) e mensagem em
@@ -166,8 +193,6 @@ com menos de 2 caracteres.
 
 Toda ordenação usa `id` como desempate (estável, necessário para paginação por cursor).
 
-| Valor | Label | Regra |
-|---|---|---|
 Ordem de exibição no menu igual à do original:
 
 | Valor | Label | Regra |
@@ -220,10 +245,12 @@ O card mostra **no máximo 2** badges, nesta ordem de prioridade: `EXCLUSIVE`, `
   "Publicado há 2 meses".
 - Plural: `1 quarto` / `2 quartos`; `1 vaga` / `2 vagas`; `1 banheiro` / `2 banheiros`;
   `1 suíte` / `2 suítes`; `1 imóvel` / `2 imóveis`.
+- Filtros "no mínimo N" ficam **sempre no plural**, como no original: "1+ banheiros",
+  "3+ quartos", "1+ vagas" (`describeMin`).
 
 ### 6.2 Valores exibidos
-- **Card:** preço de venda em destaque (`R$ 1.555.000`) + linha `Condo. + IPTU R$ 2.350`
-  (`monthlyCost`). Se `monthlyCost = 0`: `Sem condomínio e IPTU`. (suposição)
+- **Card:** preço de venda em destaque (`R$ 1.555.000`) + linha `R$ 2.350 Condo. + IPTU`
+  (`monthlyCost`, valor antes do rótulo, como no original). Se `monthlyCost = 0`: `Sem condomínio e IPTU`. (suposição)
 - **Detalhe — card de preços:** `Venda`, `Condomínio` (`Não há` se 0), `IPTU` (`Isento` se 0)
   e linha `Condo. + IPTU` com a soma. Não existe "Total" somando preço de venda com mensais.
 - Atributos no card: `120 m² · 3 quartos · 2 vagas` (vagas omitidas se 0; `STUDIO` com 0
@@ -241,18 +268,26 @@ O card mostra **no máximo 2** badges, nesta ordem de prioridade: `EXCLUSIVE`, `
 - **Headline do detalhe:** `{Tipo} à venda com {area}m², {n} quartos e {k vagas | 1 vaga | sem vaga}`.
 - **Cabeçalho da lista:** `{count} {sujeito} {complemento} à venda em {local}`:
   - `sujeito` = plural do tipo quando **exatamente um** tipo está filtrado
-    ("Apartamentos", "Casas", "Casas de condomínio", "Studios"); senão "Imóveis"; singular
-    se `count = 1`;
+    ("apartamentos", "casas", "casas de condomínio", "studios"); senão "imóveis"; singular
+    se `count = 1`. Sempre em **minúsculas**, como no original ("226.498 apartamentos");
   - `complemento` = `com {n} quartos` se `minBedrooms` (ex.: "com 3 quartos"), omitido senão;
   - `local` = `{Bairro}, São Paulo, SP` com um bairro no contexto (inclusive depois de mover o
-    mapa, como no original); `São Paulo, SP` sem bairro ou com vários bairros.
-  - Ex.: "7.887 Apartamentos com 3 quartos à venda em Pinheiros, São Paulo, SP".
-  - Exibido em duas linhas, como no original: título "7.887 Apartamentos" e subtítulo
+    mapa, como no original); `São Paulo, SP` sem bairro ou com vários bairros. Com área
+    desenhada: "à venda **na área desenhada no mapa**".
+  - Ex.: "7.887 apartamentos com 3 quartos à venda em Pinheiros, São Paulo, SP".
+  - Exibido em duas linhas, como no original: título "7.887 apartamentos" e subtítulo
     "com 3 quartos à venda em Pinheiros, São Paulo, SP" (`searchResultsHeading`).
 - **Chips de filtros ativos** (sobre o mapa e nos filtros rápidos): "Até R$ 900 mil",
-  "R$ 500 mil – R$ 1,5 mi", "3+ quartos", "1+ vaga", "Apartamento, Casa" (3+ tipos: "3 tipos"),
+  "R$ 500 mil – R$ 1,5 mi", "3+ quartos", "1+ vagas", "Apartamento, Casa" (3+ tipos: "3 tipos"),
   "Sem mobília", "Piscina"… — valores em formato compacto (`formatCompactBRL`); cada
   comodidade é um chip. Fonte: `activeFilterChips`/`quickFilterLabel`.
+
+### 6.4 Fora do escopo na tela
+
+Menus do cabeçalho que não são compra (Alugar, Anunciar, QPreço, Consórcio, Links úteis, Ajuda),
+"Entrar", "Agendar visita", "Fazer proposta", "Converse conosco agora" e a aba "Anunciar
+imóveis" da home existem como no original, mas abrem o aviso único de fora do escopo
+(`useOutOfScope()` no web). Uma feature nova que implemente um deles troca o aviso pela tela.
 
 ## 7. Ciclo de vida do imóvel (para cadastro/edição)
 1. Criado como `DRAFT`. Todos os campos obrigatórios do §2.1 são validados já na criação;
@@ -262,3 +297,11 @@ O card mostra **no máximo 2** badges, nesta ordem de prioridade: `EXCLUSIVE`, `
 4. Edição de preço: se o novo `salePrice` for menor, `previousPrice` recebe o valor antigo;
    se for maior ou igual a `previousPrice`, `previousPrice` volta a nulo.
 5. Toda escrita recalcula `relevanceScore` e o `medianPricePerM2` do bairro.
+
+**Peças prontas para cadastro/edição** (não reescreva): validação `propertyInputSchema` e rótulos
+dos campos `PROPERTY_FIELD_LABELS` (shared); comodidades válidas por tipo
+`getApplicableAmenities(type)`; bairro de um ponto do mapa `findNeighborhoodForPoint` e
+`isInsideSaoPaulo` (shared); colunas da tabela `toPropertyRow`/`PROPERTY_COLUMNS`
+(`apps/api/src/modules/properties/property-row.ts`); derivados `recomputeDerivedFields`
+(`apps/api/src/db/maintenance/recompute.ts`). Passo a passo em
+[feature-recipe.md](feature-recipe.md).

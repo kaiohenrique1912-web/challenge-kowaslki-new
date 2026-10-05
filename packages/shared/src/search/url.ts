@@ -1,8 +1,10 @@
 import { AMENITY_CODES, type AmenityCode } from "../domain/amenities.ts";
+import { DRAWN_AREA } from "../domain/drawn-area.ts";
 import { PROPERTY_TYPES, type PropertyType } from "../domain/property.ts";
 import {
   type BoundingBox,
   DEFAULT_SORT,
+  type LatLng,
   MAX_NEIGHBORHOOD_FILTER,
   MIN_COUNT_FILTER_MAX,
   type PublishedWithin,
@@ -94,6 +96,26 @@ function parseBbox(value: string | null): BoundingBox | undefined {
   return valid ? { north, west, south, east } : undefined;
 }
 
+/** "lat,lng;lat,lng;…" → polígono válido (3 a 40 pontos dentro do globo). */
+function parsePolygon(value: string | null): LatLng[] | undefined {
+  if (!value) return undefined;
+  const points = value.split(";").map((pair) => {
+    const [lat, lng] = pair.split(",").map(Number);
+    return { lat: lat ?? Number.NaN, lng: lng ?? Number.NaN };
+  });
+  const valid =
+    points.length >= DRAWN_AREA.minPoints &&
+    points.length <= DRAWN_AREA.maxPoints &&
+    points.every(
+      (p) =>
+        Number.isFinite(p.lat) &&
+        Number.isFinite(p.lng) &&
+        Math.abs(p.lat) <= 90 &&
+        Math.abs(p.lng) <= 180,
+    );
+  return valid ? points : undefined;
+}
+
 /**
  * URL → estado. `pathSlug` é o segmento opcional de `/comprar/imovel/:bairroSlug`.
  */
@@ -121,13 +143,15 @@ export function parseSearchState(params: URLSearchParams, pathSlug?: string | nu
     amenities: parseList(params.get("itens"), (s) => AMENITY_BY_SLUG.get(s)),
   });
 
-  const mapArea = parseBbox(params.get("area-mapa"));
+  const drawnArea = parsePolygon(params.get("area-desenhada"));
+  const mapArea = drawnArea ? undefined : parseBbox(params.get("area-mapa"));
   const mapZoom = mapArea ? parseInteger(params.get("zoom"), 0, 22) : undefined;
   const sort = SORT_BY_SLUG.get(params.get("ordem") ?? "") ?? DEFAULT_SORT;
   const onlyFavorites = params.get("favoritos") === "sim";
 
   return {
-    neighborhoodSlugs,
+    neighborhoodSlugs: drawnArea ? [] : neighborhoodSlugs,
+    ...(drawnArea && { drawnArea }),
     ...(mapArea && { mapArea }),
     ...(mapZoom !== undefined && { mapZoom }),
     filters,
@@ -147,7 +171,12 @@ export function serializeSearchState(state: SearchState): { pathname: string; se
     firstSlug && otherSlugs.length === 0 ? `${SEARCH_BASE_PATH}/${firstSlug}` : SEARCH_BASE_PATH;
   if (state.neighborhoodSlugs.length > 1) params.set("bairros", state.neighborhoodSlugs.join(","));
 
-  if (state.mapArea) {
+  if (state.drawnArea) {
+    params.set(
+      "area-desenhada",
+      state.drawnArea.map((p) => `${round(p.lat)},${round(p.lng)}`).join(";"),
+    );
+  } else if (state.mapArea) {
     const { north, west, south, east } = state.mapArea;
     params.set("area-mapa", [north, west, south, east].map(round).join(","));
     if (state.mapZoom !== undefined) params.set("zoom", String(state.mapZoom));

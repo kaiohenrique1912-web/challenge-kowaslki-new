@@ -9,7 +9,8 @@
     "preview": "bunx --bun vite preview",
     "typecheck": "tsc --noEmit",
     "codegen": "bunx --bun graphql-codegen --config codegen.ts",
-    "e2e": "bun e2e/smoke.ts"
+    "e2e": "bun e2e/smoke.ts",
+    "visual": "bun e2e/visual.ts"
   },
   "dependencies": {
     "@qa/shared": "workspace:*",
@@ -29,7 +30,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "graphql": "^16.6.0",
-    "puppeteer-core": "^25.12.0",
+    "playwright-core": "^1.63.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.1"
   }

@@ -48,3 +48,36 @@ export const ZONE_LABELS: Record<Zone, string> = {
   NORTE: "Zona Norte",
   LESTE: "Zona Leste",
 };
+
+/**
+ * Rótulos dos campos informados de um imóvel (`PropertyInput`) — os mesmos das mensagens de
+ * validação. Use nos formulários (cadastro/edição) em vez de reescrever os textos.
+ */
+export const PROPERTY_FIELD_LABELS = {
+  type: "Tipo de imóvel",
+  cep: "CEP",
+  street: "Rua",
+  number: "Número",
+  complement: "Complemento",
+  neighborhoodId: "Bairro",
+  latitude: "Latitude",
+  longitude: "Longitude",
+  salePrice: "Valor de venda",
+  condoFee: "Condomínio",
+  iptu: "IPTU",
+  area: "Área",
+  bedrooms: "Quartos",
+  suites: "Suítes",
+  bathrooms: "Banheiros",
+  parkingSpaces: "Vagas",
+  floor: "Andar",
+  isFurnished: "Mobiliado",
+  acceptsPets: "Aceita pet",
+  nearSubway: "Próximo ao metrô",
+  isExclusive: "Exclusivo QuintoAndar",
+  isRented: "Já alugado",
+  monthlyRent: "Aluguel atual",
+  description: "Descrição",
+  amenities: "Itens do imóvel",
+  photos: "Fotos",
+} as const;

@@ -34,7 +34,7 @@ describe("property texts", () => {
     expect(propertyAttributesLine({ ...apt, type: "STUDIO", bedrooms: 0, parkingSpaces: 1 })).toBe(
       "120 m² · Studio · 1 vaga",
     );
-    expect(monthlyCostLabel(2_350)).toBe("Condo. + IPTU R$ 2.350");
+    expect(monthlyCostLabel(2_350)).toBe("R$ 2.350 Condo. + IPTU");
     expect(monthlyCostLabel(0)).toBe("Sem condomínio e IPTU");
     expect(publicAddress("Rua João Moura", "Pinheiros")).toBe(
       "Rua João Moura, Pinheiros · São Paulo",

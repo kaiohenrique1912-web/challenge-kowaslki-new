@@ -5,8 +5,8 @@
 }
 
 .qa-input__label {
-  font-size: var(--qa-font-size-sm);
-  font-weight: var(--qa-font-weight-semibold);
+  font-size: var(--qa-font-size-md);
+  font-weight: var(--qa-font-weight-regular);
   color: var(--qa-color-text);
 }
 
@@ -31,6 +31,9 @@
 }
 
 .qa-input__control--pill {
+  gap: var(--qa-space-3);
+  min-height: var(--qa-control-lg);
+  padding: 0 var(--qa-space-6);
   border: 1px solid transparent;
   border-radius: var(--qa-radius-pill);
   background: var(--qa-color-surface-muted);

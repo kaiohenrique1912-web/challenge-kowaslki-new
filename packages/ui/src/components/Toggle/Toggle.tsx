@@ -9,7 +9,7 @@ export type ToggleProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onChang
   description?: string;
 };
 
-/** Interruptor liga/desliga (ex.: "Buscar ao mover o mapa"). `role="switch"`, Espaço/Enter alternam. */
+/** Interruptor liga/desliga (ex.: canais do alerta, "Notificações no app"). `role="switch"`, Espaço/Enter alternam. */
 export function Toggle({
   label,
   checked,

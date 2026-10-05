@@ -4,6 +4,7 @@ import { healthResolvers } from "../modules/health/health.resolvers.ts";
 import { locationsResolvers } from "../modules/locations/locations.resolvers.ts";
 import { neighborhoodsResolvers } from "../modules/neighborhoods/neighborhoods.resolvers.ts";
 import { propertiesResolvers } from "../modules/properties/properties.resolvers.ts";
+import { searchAlertsResolvers } from "../modules/search-alerts/search-alerts.resolvers.ts";
 import type { Resolvers } from "./generated/resolvers-types.ts";
 import { DateTimeScalar } from "./scalars.ts";
 
@@ -15,6 +16,7 @@ const modules: Resolvers[] = [
   neighborhoodsResolvers,
   locationsResolvers,
   favoritesResolvers,
+  searchAlertsResolvers,
 ];
 
 /** Junta os resolvers dos módulos, mesclando tipos repetidos (ex.: `Query`). */

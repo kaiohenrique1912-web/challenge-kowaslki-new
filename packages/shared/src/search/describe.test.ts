@@ -24,11 +24,11 @@ describe("describe search", () => {
         neighborhoodName: "Pinheiros",
       }),
     ).toEqual({
-      title: "7.887 Apartamentos",
+      title: "7.887 apartamentos",
       subtitle: "com 3 quartos à venda em Pinheiros, São Paulo, SP",
     });
     expect(searchResultsHeading({ count: 1, types: ["HOUSE", "STUDIO"] })).toEqual({
-      title: "1 Imóvel",
+      title: "1 imóvel",
       subtitle: "à venda em São Paulo, SP",
     });
   });
@@ -56,7 +56,7 @@ describe("describe search", () => {
   test("quick filter labels", () => {
     expect(quickFilterLabel("bedrooms", {})).toEqual({ label: "Quartos", active: false });
     expect(quickFilterLabel("bedrooms", { minBedrooms: 1 })).toEqual({
-      label: "1+ quarto",
+      label: "1+ quartos",
       active: true,
     });
     expect(quickFilterLabel("types", { types: ["APARTMENT", "HOUSE", "STUDIO"] }).label).toBe(
@@ -65,6 +65,19 @@ describe("describe search", () => {
     expect(quickFilterLabel("price", { price: { min: 500_000, max: 1_500_000 } }).label).toBe(
       "R$ 500 mil – R$ 1,5 mi",
     );
+    // Chips novos da barra (como no original).
+    expect(quickFilterLabel("bathrooms", { minBathrooms: 1 }).label).toBe("1+ banheiros");
+    expect(quickFilterLabel("furnished", {})).toEqual({ label: "Mobiliado", active: false });
+    expect(quickFilterLabel("nearSubway", { nearSubway: true }).label).toBe("Próximo ao metrô");
+    expect(quickFilterLabel("area", { area: { min: 50 } }).label).toBe("A partir de 50 m²");
+    expect(quickFilterLabel("suites", {}).label).toBe("Suítes");
+  });
+
+  test("heading da área desenhada", () => {
+    expect(searchResultsHeading({ count: 23_737, types: ["APARTMENT"], drawnArea: true })).toEqual({
+      title: "23.737 apartamentos",
+      subtitle: "à venda na área desenhada no mapa",
+    });
   });
 });
 

@@ -6,10 +6,12 @@ com **60.000 imóveis** gerados em 102 bairros reais.
 
 O projeto também foi organizado para que um agente de código consiga criar uma feature nova em
 uma única instrução, respeitando as regras de negócio e o design existentes: veja
-[CLAUDE.md](CLAUDE.md) e a pasta [docs/](docs/).
+[CLAUDE.md](CLAUDE.md), a receita [docs/feature-recipe.md](docs/feature-recipe.md) e as skills em
+[.claude/skills/](.claude/skills/) (`/nova-feature`, `/conferir-visual`, regras de imóveis).
 
 ## O que dá para fazer
 
+- **Começar pela home**: card "Buscar imóveis" com bairro/rua/código, valor e quartos.
 - **Buscar** por bairro, rua ou código do imóvel, ou na cidade toda.
 - **Filtrar**:
   - valor, condomínio + IPTU e área;
@@ -18,17 +20,20 @@ uma única instrução, respeitando as regras de negócio e o design existentes:
   - mobiliado, perto do metrô, exclusivos e "compre já alugado";
   - 57 comodidades.
 
-  Chips rápidos e o painel "Mais filtros" mostram "Ver N imóveis" ao vivo.
+  Nove chips rápidos (como no original) e o painel "Mais filtros" mostram "Ver N imóveis" ao vivo.
 - **Ordenar** por mais próximos, mais relevantes, mais recentes, menor valor, maior valor e
   maior retorno com aluguel. "Ver mais" carrega a próxima página.
 - **Mapa**:
   - bolinhas com a contagem de imóveis, que aproximam ao clicar;
-  - a lista acompanha a área visível ("Buscar ao mover o mapa");
+  - a lista acompanha a área visível;
+  - **desenhar a área de busca** com o mouse (só imóveis dentro do desenho);
   - passar o mouse num card destaca a bolinha dele;
   - clicar numa bolinha "1" mostra o imóvel.
 - **Ver o imóvel**: galeria de fotos, preço, condomínio, IPTU, retorno estimado com aluguel,
   características, itens disponíveis/indisponíveis, descrição e mapa da localização.
 - **Favoritar** sem login (usuário anônimo guardado no navegador) e ver só os favoritos.
+- **Criar alerta de imóvel** para a busca atual, escolhendo app, WhatsApp e/ou e-mail (o envio
+  das notificações não faz parte da demonstração).
 - **Compartilhar**: todos os filtros ficam na URL; o botão voltar do navegador funciona e
   "Voltar para a busca" mantém os filtros e a posição na lista.
 - **Celular**: alternância Lista/Mapa. O foco do projeto é desktop/notebook.
@@ -50,7 +55,8 @@ http://localhost:4000/graphql.
 | Comando | O que faz |
 |---|---|
 | `bun test` | Testes de todos os pacotes (regras, API, seed, design system) |
-| `bun run e2e` | Com o `dev` rodando: abre o Chrome/Edge instalado e percorre 20 fluxos reais |
+| `bun run e2e` | Com o `dev` rodando: abre o Chrome/Edge instalado e percorre 24 fluxos reais |
+| `bun run visual` | Com o `dev` rodando: compara o site com os prints do original (imagens lado a lado em `apps/web/e2e/visual/`) |
 | `bun run storybook` | Catálogo do design system em http://localhost:6006 |
 | `bun run bench` | Mede a velocidade das buscas com os 60 mil imóveis |
 | `bun run typecheck` / `bun run lint` | Verificação de tipos / estilo de código |
@@ -88,23 +94,26 @@ Detalhes em [docs/architecture.md](docs/architecture.md).
 | **Paginação por cursor** | "Ver mais" sem repetir nem pular imóveis, com custo constante. |
 | **Clusters do mapa calculados no SQL** (grade) | Respeitam todos os filtros sem mandar milhares de pontos ao navegador. |
 | **Estado da busca na URL** | Link compartilhável, botão voltar funcionando, recarregar sem perder nada. |
-| **Design system próprio** (CSS + tokens, sem biblioteca de UI) | Fidelidade ao visual do original; um teste renderiza todas as stories e checa acessibilidade. |
-| **Leaflet + OpenStreetMap** | Mapa gratuito, sem chave de API. |
+| **Design system próprio** (CSS + tokens, sem biblioteca de UI) | Fidelidade ao visual do original (cores, tamanhos e raios tirados do CSS público do QuintoAndar; fonte Albert Sans no lugar da Oatmeal Pro, que é paga); um teste renderiza todas as stories e checa acessibilidade. |
+| **Leaflet + OpenStreetMap** | Mapa gratuito, sem chave de API, com as cores suavizadas para lembrar o Google Maps do original. |
 | **Favoritos com usuário anônimo** (`x-user-id`) | Sem login, conforme o escopo; trocar por autenticação real só muda de onde vem o id. |
-| **Teste no navegador real** (`puppeteer-core`) | Usa o Chrome/Edge já instalado, sem baixar navegador; pegou bugs de layout que testes sem tela não pegam. |
+| **Teste no navegador real** (Playwright, `playwright-core`) | Usa o Chrome/Edge já instalado, sem baixar navegador; pegou bugs de layout que testes sem tela não pegam. |
+| **Conferência visual por agente** (`bun run visual` + skill `/conferir-visual`) | Os dados e o mapa do original nunca batem pixel a pixel; o agente compara as imagens lado a lado e corrige layout, textos e componentes. |
 
 Decisões detalhadas e medições: [docs/architecture.md §12](docs/architecture.md) e §5.4.
 
 ## Fora do escopo
 
-Aluguel, login real, agendar visita, fazer proposta, alerta de imóvel, desenhar área de busca
-no mapa. Os botões "Agendar visita" e "Fazer proposta" existem e explicam que não fazem parte
-da demonstração. As fotos são ilustrações geradas pela própria API.
+Aluguel, login real, agendar visita, fazer proposta, conversa por WhatsApp, envio das
+notificações de alerta, onboarding por perguntas e os outros menus do site (Anunciar, QPreço,
+Consórcio…). Esses botões existem como no original e mostram um aviso de que não fazem parte da
+demonstração. As fotos são ilustrações geradas pela própria API.
 
 ## Documentação
 
 - [docs/business-rules.md](docs/business-rules.md) — regras do domínio (campos, faixas, filtros, textos).
 - [docs/architecture.md](docs/architecture.md) — system design, schema, banco, mapa, convenções.
+- [docs/feature-recipe.md](docs/feature-recipe.md) — passo a passo para criar uma feature ponta a ponta.
 - [docs/design-system.md](docs/design-system.md) — tokens, componentes e quando usar cada um.
 - [docs/feature-analysis.md](docs/feature-analysis.md) — levantamento do site original.
 - [docs/aprendizado.md](docs/aprendizado.md) — o que foi feito em cada etapa, explicado para iniciantes.

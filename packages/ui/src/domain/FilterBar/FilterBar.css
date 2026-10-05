@@ -2,14 +2,23 @@
   display: flex;
   align-items: center;
   gap: var(--qa-space-3);
-  padding: var(--qa-space-4) var(--qa-space-6);
+  padding: var(--qa-space-5) var(--qa-space-12);
   border-bottom: 1px solid var(--qa-color-divider);
   background: var(--qa-color-surface);
 }
 
 .qa-filter-bar__location {
-  flex: 0 1 380px;
+  flex: 0 0 min(374px, 28%);
   min-width: 220px;
+}
+
+/* Chips rápidos com rolagem horizontal; as setas ficam por cima das pontas. */
+.qa-filter-bar__scroller {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
 }
 
 .qa-filter-bar__chips {
@@ -26,18 +35,18 @@
   display: none;
 }
 
-.qa-filter-bar__count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  margin-left: var(--qa-space-1);
-  padding: 0 var(--qa-space-1);
-  border-radius: var(--qa-radius-pill);
-  background: var(--qa-color-primary);
-  color: var(--qa-color-on-primary);
-  font-size: var(--qa-font-size-xs);
+.qa-filter-bar__arrow {
+  position: absolute;
+  z-index: 1;
+  box-shadow: var(--qa-shadow-md);
+}
+
+.qa-filter-bar__arrow--start {
+  left: calc(var(--qa-space-2) * -1);
+}
+
+.qa-filter-bar__arrow--end {
+  right: calc(var(--qa-space-2) * -1);
 }
 
 @media (max-width: 767px) {

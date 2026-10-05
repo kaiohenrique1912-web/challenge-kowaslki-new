@@ -1,8 +1,8 @@
 /*
  * Estilos globais do design system. Importe UMA vez na raiz da app: `import "@qa/ui/styles.css"`.
- * Inclui a fonte (Inter, servida localmente via @fontsource), os tokens e uma base mínima.
+ * Inclui a fonte (Albert Sans, servida localmente via @fontsource), os tokens e uma base mínima.
  */
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/albert-sans";
 @import "../tokens/tokens.css";
 
 *,

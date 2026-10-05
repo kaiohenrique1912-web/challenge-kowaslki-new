@@ -1,0 +1,59 @@
+/* Modal largo com título grande (como no original). */
+.qa-dialog--modal .qa-dialog__panel.qa-alert-dialog {
+  width: min(444px, 100%);
+  padding: var(--qa-space-6) var(--qa-space-6) var(--qa-space-8);
+}
+
+.qa-alert-dialog .qa-dialog__header {
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  padding: 0;
+}
+
+.qa-alert-dialog .qa-dialog__title {
+  flex: 1;
+  padding: var(--qa-space-6) 0 0 var(--qa-space-8);
+  font-size: var(--qa-font-size-xl);
+  line-height: var(--qa-line-height-tight);
+  letter-spacing: var(--qa-letter-spacing-tight);
+}
+
+.qa-alert-dialog .qa-dialog__body {
+  padding: var(--qa-space-8) var(--qa-space-8) 0;
+}
+
+.qa-alert-dialog__form {
+  display: grid;
+  gap: var(--qa-space-8);
+}
+
+.qa-alert-dialog__group {
+  display: grid;
+  gap: var(--qa-space-4);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.qa-alert-dialog__legend {
+  margin-bottom: var(--qa-space-3);
+  padding: 0;
+}
+
+/* Rótulo à esquerda, interruptor à direita. */
+.qa-alert-dialog .qa-alert-dialog__toggle {
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+}
+
+.qa-alert-dialog__hint {
+  margin: 0 0 var(--qa-space-4);
+  color: var(--qa-color-text);
+}
+
+.qa-alert-dialog__error {
+  margin: 0;
+  color: var(--qa-color-danger);
+}

@@ -4,8 +4,8 @@
 }
 
 .qa-counter__label {
-  font-size: var(--qa-font-size-sm);
-  font-weight: var(--qa-font-weight-bold);
+  font-size: var(--qa-font-size-md);
+  font-weight: var(--qa-font-weight-semibold);
 }
 
 .qa-counter__options {

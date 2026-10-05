@@ -34,7 +34,7 @@ cards) e à direita o mapa ocupando a altura da viewport.
   **Tipos de imóvel**, **Quartos** ("3+ quartos"), **Vagas de garagem**, seta para rolar mais
   chips, **Mais filtros** (abre o painel completo).
 - Chip ativo fica com fundo azul-claro e texto azul; inativo, fundo cinza claro.
-- **Criar alerta de imóvel** — **fora do escopo** (suposição).
+- **Criar alerta de imóvel** — feito na Etapa 7 (o alerta é gravado; o envio das notificações fica fora do escopo).
 
 ### 2.2 Cabeçalho da lista
 - Contagem + descrição dos filtros, ex.: **"7.887 Apartamentos com 3 quartos à venda em
@@ -148,7 +148,7 @@ Painel lateral/modal com rolagem, botão fechar (×), rodapé fixo com **"Limpar
   - "Mais filtros" abre em tela cheia (o layout de `mais_filtros*.jpeg` já é desse formato).
 
 ## 6. Fora do escopo (proposto)
-Aluguel, alerta de imóvel, onboarding por perguntas, login real, agendar visita, proposta,
-chat, toggle "exibir rentabilidade mensal" (o dado existe por causa da ordenação "Maior
-retorno com aluguel", mas o toggle não), desenhar área de busca (planejado como opcional —
-ver architecture.md).
+Aluguel, envio das notificações de alerta, onboarding por perguntas, login real, agendar
+visita, proposta, chat, toggle "exibir rentabilidade mensal" (o dado existe por causa da
+ordenação "Maior retorno com aluguel", mas o toggle não). Desenhar área de busca e criar alerta
+de imóvel foram feitos na Etapa 7.

@@ -2,8 +2,11 @@ import "leaflet/dist/leaflet.css";
 import {
   activeFilterChips,
   type BoundingBox,
+  type LatLng,
+  polygonBounds,
   removeActiveFilter,
   type SearchState,
+  simplifyPolygon,
   toApiFilters,
 } from "@qa/shared";
 import {
@@ -16,13 +19,13 @@ import {
   mapClusterLabel,
   PropertyCard,
   Spinner,
-  Toggle,
 } from "@qa/ui";
 import L from "leaflet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { useNavigate } from "react-router";
 import { useDebouncedValue } from "../../lib/hooks.ts";
+import { DRAWN_AREA_STYLE, MAP_TILES } from "../../lib/map-tiles.ts";
 import { useToggleFavorite } from "../favorites/use-favorites.ts";
 import {
   clusterIdFor,
@@ -44,8 +47,6 @@ type Props = {
   setState: SetSearchState;
   neighborhoods: Map<string, NeighborhoodInfo>;
   neighborhoodsLoaded: boolean;
-  searchOnMove: boolean;
-  onSearchOnMoveChange: (value: boolean) => void;
   highlighted: HighlightedProperty | null;
 };
 
@@ -67,8 +68,10 @@ const pinIcon = L.divIcon({
 /**
  * Mapa da busca (docs/architecture.md §7.2). Regras-chave:
  * - clusters = área visível + filtros, nunca o bairro (mostra imóveis de outros bairros);
- * - movimento DO USUÁRIO grava `area-mapa` na URL (replace) se "Buscar ao mover o mapa" estiver
- *   ligado; movimentos programáticos (enquadrar bairro, voltar no histórico) não gravam nada;
+ * - movimento DO USUÁRIO grava `area-mapa` na URL (replace) e a lista acompanha, como no
+ *   original; movimentos programáticos (enquadrar bairro, voltar no histórico) não gravam nada;
+ * - "Desenhar área de busca": o traço do mouse vira o polígono `area-desenhada`; com ele, lista e
+ *   clusters ficam só dentro da área e mover o mapa não muda a lista;
  * - hover no card destaca a célula dele; clique em cluster aproxima; em "1" abre a prévia.
  */
 export function SearchMap({
@@ -76,8 +79,6 @@ export function SearchMap({
   setState,
   neighborhoods,
   neighborhoodsLoaded,
-  searchOnMove,
-  onSearchOnMoveChange,
   highlighted,
 }: Props) {
   const navigate = useNavigate();
@@ -85,6 +86,7 @@ export function SearchMap({
   const mapRef = useRef<L.Map | null>(null);
   const clusterLayerRef = useRef<L.LayerGroup | null>(null);
   const pinLayerRef = useRef<L.LayerGroup | null>(null);
+  const drawLayerRef = useRef<L.LayerGroup | null>(null);
   const markersRef = useRef(new Map<string, { marker: L.Marker; count: number }>());
   const programmaticRef = useRef(false);
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -92,18 +94,17 @@ export function SearchMap({
   const syncFromUrlRef = useRef<() => void>(() => {});
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
-  const [pendingArea, setPendingArea] = useState<Viewport | null>(null);
+  const [drawing, setDrawing] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   // Valores atuais para os handlers do Leaflet (registrados uma única vez).
-  const latest = useRef({ searchOnMove, setState });
-  latest.current = { searchOnMove, setState };
+  const latest = useRef({ setState, hasDrawnArea: false });
+  latest.current = { setState, hasDrawnArea: Boolean(state.drawnArea) };
 
   const commitArea = useCallback((vp: Viewport) => {
     latest.current.setState((s) => ({ ...s, mapArea: vp.bbox, mapZoom: vp.zoom }), {
       replace: true,
     });
-    setPendingArea(null);
   }, []);
 
   /** Move o mapa sem que isso conte como "o usuário moveu" (moveend síncrono, sem animação). */
@@ -132,10 +133,8 @@ export function SearchMap({
     L.control
       .zoom({ position: "bottomright", zoomInTitle: "Aproximar", zoomOutTitle: "Afastar" })
       .addTo(map);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
+    L.tileLayer(MAP_TILES.url, MAP_TILES.options).addTo(map);
+    drawLayerRef.current = L.layerGroup().addTo(map);
     clusterLayerRef.current = L.layerGroup().addTo(map);
     pinLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
@@ -144,13 +143,9 @@ export function SearchMap({
       if (map.getSize().x === 0) return; // mapa escondido (mobile em "Lista")
       const vp = { bbox: toBoundingBox(map.getBounds()), zoom: map.getZoom() };
       setViewport(vp);
-      if (programmaticRef.current) return;
+      if (programmaticRef.current || latest.current.hasDrawnArea) return;
       clearTimeout(commitTimerRef.current);
-      if (latest.current.searchOnMove) {
-        commitTimerRef.current = setTimeout(() => commitArea(vp), 400);
-      } else {
-        setPendingArea(vp);
-      }
+      commitTimerRef.current = setTimeout(() => commitArea(vp), 400);
     };
     map.on("moveend", onMoveEnd);
     if (map.getSize().x > 0) {
@@ -180,11 +175,22 @@ export function SearchMap({
   // URL → mapa: enquadra a área fixada, o(s) bairro(s) ou a cidade. Ignora quando a URL só
   // reflete a área que o próprio mapa acabou de gravar.
   const slugsKey = state.neighborhoodSlugs.join(",");
-  const areaKey = state.mapArea ? JSON.stringify([state.mapArea, state.mapZoom]) : "";
+  const areaKey = state.drawnArea
+    ? JSON.stringify(state.drawnArea)
+    : state.mapArea
+      ? JSON.stringify([state.mapArea, state.mapZoom])
+      : "";
   syncFromUrlRef.current = () => {
     const map = mapRef.current;
     if (!map || map.getSize().x === 0) return; // escondido: sincroniza quando aparecer
     const current = toBoundingBox(map.getBounds());
+    if (state.drawnArea) {
+      const area = toLatLngBounds(polygonBounds(state.drawnArea));
+      if (!map.getBounds().contains(area)) {
+        moveProgrammatically((m) => m.fitBounds(area.pad(0.2), { animate: false }));
+      }
+      return;
+    }
     if (state.mapArea) {
       if (sameBox(current, state.mapArea)) return;
       const area = toLatLngBounds(state.mapArea);
@@ -224,6 +230,80 @@ export function SearchMap({
       }).addTo(layer);
     }
   }, [slugsKey, neighborhoods, state.neighborhoodSlugs.length]);
+
+  // Polígono da área desenhada (cinza, como no original).
+  const drawnKey = state.drawnArea ? JSON.stringify(state.drawnArea) : "";
+  // biome-ignore lint/correctness/useExhaustiveDependencies: drawnKey resume state.drawnArea
+  useEffect(() => {
+    const layer = drawLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    if (state.drawnArea) {
+      L.polygon(
+        state.drawnArea.map((p) => [p.lat, p.lng] as [number, number]),
+        DRAWN_AREA_STYLE,
+      ).addTo(layer);
+    }
+  }, [drawnKey]);
+
+  // Modo desenho: arrastar o mouse desenha; soltar fecha o polígono e busca dentro dele.
+  useEffect(() => {
+    const map = mapRef.current;
+    const container = containerRef.current;
+    const layer = drawLayerRef.current;
+    if (!drawing || !map || !container || !layer) return;
+    map.dragging.disable();
+    container.classList.add("search-map__canvas--drawing");
+    let points: LatLng[] = [];
+    let line: L.Polyline | null = null;
+    const toLatLng = (e: PointerEvent): LatLng => {
+      const { lat, lng } = map.mouseEventToLatLng(e);
+      return { lat, lng };
+    };
+    const onDown = (e: PointerEvent) => {
+      e.preventDefault();
+      container.setPointerCapture(e.pointerId);
+      points = [toLatLng(e)];
+      line = L.polyline([], DRAWN_AREA_STYLE).addTo(layer);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!line) return;
+      const point = toLatLng(e);
+      points.push(point);
+      line.addLatLng([point.lat, point.lng]);
+    };
+    const onUp = () => {
+      if (!line) return;
+      line.remove();
+      line = null;
+      const polygon = simplifyPolygon(points);
+      setDrawing(false);
+      if (polygon.length < 3) return;
+      latest.current.setState((s) => ({
+        ...s,
+        drawnArea: polygon,
+        neighborhoodSlugs: [],
+        mapArea: undefined,
+        mapZoom: undefined,
+      }));
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawing(false);
+    };
+    container.addEventListener("pointerdown", onDown);
+    container.addEventListener("pointermove", onMove);
+    container.addEventListener("pointerup", onUp);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      line?.remove();
+      map.dragging.enable();
+      container.classList.remove("search-map__canvas--drawing");
+      container.removeEventListener("pointerdown", onDown);
+      container.removeEventListener("pointermove", onMove);
+      container.removeEventListener("pointerup", onUp);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [drawing]);
 
   // Clusters da área visível (com margem), com os filtros SEM bairro.
   const mapFilters = useMemo(() => toApiFilters(state, "map"), [state]);
@@ -312,20 +392,29 @@ export function SearchMap({
         )}
       </div>
 
-      <div className="search-map__toggle">
-        <Toggle
-          label="Buscar ao mover o mapa"
-          checked={searchOnMove}
-          onChange={onSearchOnMoveChange}
-        />
-      </div>
-
-      {!searchOnMove && pendingArea && (
-        <div className="search-map__center-action">
-          <Button size="sm" iconLeft="search" onClick={() => commitArea(pendingArea)}>
-            Buscar nesta área
+      <div className="search-map__draw">
+        {state.drawnArea ? (
+          <Button
+            variant="outline"
+            iconLeft="close"
+            onClick={() => setState((s) => ({ ...s, drawnArea: undefined }))}
+          >
+            Apagar desenho
           </Button>
-        </div>
+        ) : drawing ? (
+          <Button variant="outline" iconLeft="close" onClick={() => setDrawing(false)}>
+            Cancelar desenho
+          </Button>
+        ) : (
+          <Button variant="outline" iconLeft="hand" onClick={() => setDrawing(true)}>
+            Desenhar área de busca
+          </Button>
+        )}
+      </div>
+      {drawing && (
+        <p className="search-map__hint" role="status">
+          Clique e arraste no mapa para desenhar a área da busca.
+        </p>
       )}
 
       <div className="search-map__status" aria-live="polite">

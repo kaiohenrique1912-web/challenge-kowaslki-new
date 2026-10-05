@@ -91,3 +91,13 @@
   color: var(--qa-color-primary-hover);
   text-decoration: underline;
 }
+
+.qa-button--ghost {
+  background: transparent;
+  color: var(--qa-color-text);
+}
+
+.qa-button--ghost:hover:not(:disabled),
+.qa-button--ghost[aria-current="page"] {
+  background: var(--qa-color-surface-muted);
+}

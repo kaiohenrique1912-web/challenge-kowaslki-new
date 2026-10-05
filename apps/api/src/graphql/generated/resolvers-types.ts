@@ -1,6 +1,7 @@
 import type { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
 import type { PropertyRecord, PropertyConnectionModel } from '../../modules/properties/property-record.ts';
 import type { NeighborhoodRecord } from '../../modules/neighborhoods/neighborhood-record.ts';
+import type { SearchAlertRecord } from '../../modules/search-alerts/search-alerts.repository.ts';
 import type { GraphQLContext } from '../../context.ts';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
@@ -15,6 +16,15 @@ export type Scalars = {
   /** Data/hora ISO-8601 (UTC). */
   DateTime: { input: string; output: number; }
 };
+
+/** Canal de aviso de um alerta de busca. */
+export type AlertChannel =
+  /** Notificações no app (assim que o imóvel chegar). */
+  | 'APP'
+  /** E-mail com os imóveis que chegaram no dia. */
+  | 'EMAIL'
+  /** Whatsapp (assim que o imóvel chegar). */
+  | 'WHATSAPP';
 
 export type Amenity = {
   __typename?: 'Amenity';
@@ -108,6 +118,11 @@ export type Bounds = {
   west: Scalars['Float']['output'];
 };
 
+export type CreateSearchAlertInput = {
+  channels: Array<AlertChannel>;
+  searchUrl: Scalars['String']['input'];
+};
+
 export type Health = {
   __typename?: 'Health';
   service: Scalars['String']['output'];
@@ -176,6 +191,8 @@ export type Mutation = {
   __typename?: 'Mutation';
   /** Favorita um imóvel ativo para o usuário do header x-user-id. Idempotente. */
   addFavorite: Property;
+  /** Cria o alerta da busca para o usuário do header x-user-id (a mesma busca de novo só troca os canais). */
+  createSearchAlert: SearchAlert;
   /** Remove dos favoritos. Idempotente (remover o que não está favoritado não é erro). */
   removeFavorite: Property;
 };
@@ -183,6 +200,11 @@ export type Mutation = {
 
 export type MutationAddFavoriteArgs = {
   propertyId: Scalars['ID']['input'];
+};
+
+
+export type MutationCreateSearchAlertArgs = {
+  input: CreateSearchAlertInput;
 };
 
 
@@ -305,6 +327,8 @@ export type PropertySearchFilters = {
   neighborhoodSlugs?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Só favoritos do usuário do header x-user-id. */
   onlyFavorites?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Área desenhada no mapa (polígono de 3 a 40 pontos): só imóveis dentro dela. */
+  polygon?: InputMaybe<Array<LatLngInput>>;
   /** Valor de venda (R$). */
   price?: InputMaybe<IntRange>;
   publishedWithin?: InputMaybe<PublishedWithin>;
@@ -348,6 +372,8 @@ export type Query = {
   property?: Maybe<Property>;
   /** Clusters dos imóveis da área visível, respeitando os filtros. Não inclua neighborhoodSlugs para ver também imóveis de outros bairros. */
   propertyMapClusters: MapClusterResult;
+  /** Alertas do usuário do header x-user-id, do mais novo ao mais antigo. */
+  searchAlerts: Array<SearchAlert>;
   /** Busca paginada por cursor ("Ver mais" passa pageInfo.endCursor em after). */
   searchProperties: PropertyConnection;
 };
@@ -377,6 +403,16 @@ export type QuerySearchPropertiesArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   origin?: InputMaybe<LatLngInput>;
   sort?: InputMaybe<SortOrder>;
+};
+
+/** Busca salva para avisar quando chegar imóvel novo (docs/business-rules.md §4.5). */
+export type SearchAlert = {
+  __typename?: 'SearchAlert';
+  channels: Array<AlertChannel>;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  /** URL da busca, ex.: "/comprar/imovel/pinheiros?quartos=3". */
+  searchUrl: Scalars['String']['output'];
 };
 
 export type SortOrder =
@@ -467,12 +503,14 @@ export type DirectiveResolverFn<TResult = Record<PropertyKey, never>, TParent = 
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
+  AlertChannel: AlertChannel;
   Amenity: ResolverTypeWrapper<Amenity>;
   AmenityCategory: AmenityCategory;
   AmenityCode: AmenityCode;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   BoundingBox: BoundingBox;
   Bounds: ResolverTypeWrapper<Bounds>;
+  CreateSearchAlertInput: CreateSearchAlertInput;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   Health: ResolverTypeWrapper<Health>;
@@ -497,6 +535,7 @@ export type ResolversTypes = {
   PropertyType: PropertyType;
   PublishedWithin: PublishedWithin;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
+  SearchAlert: ResolverTypeWrapper<SearchAlertRecord>;
   SortOrder: SortOrder;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   Zone: Zone;
@@ -508,6 +547,7 @@ export type ResolversParentTypes = {
   Boolean: Scalars['Boolean']['output'];
   BoundingBox: BoundingBox;
   Bounds: Bounds;
+  CreateSearchAlertInput: CreateSearchAlertInput;
   DateTime: Scalars['DateTime']['output'];
   Float: Scalars['Float']['output'];
   Health: Health;
@@ -527,6 +567,7 @@ export type ResolversParentTypes = {
   PropertyConnection: PropertyConnectionModel;
   PropertySearchFilters: PropertySearchFilters;
   Query: Record<PropertyKey, never>;
+  SearchAlert: SearchAlertRecord;
   String: Scalars['String']['output'];
 };
 
@@ -583,6 +624,7 @@ export type MapClusterResultResolvers<ContextType = GraphQLContext, ParentType e
 
 export type MutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
   addFavorite?: Resolver<ResolversTypes['Property'], ParentType, ContextType, RequireFields<MutationAddFavoriteArgs, 'propertyId'>>;
+  createSearchAlert?: Resolver<ResolversTypes['SearchAlert'], ParentType, ContextType, RequireFields<MutationCreateSearchAlertArgs, 'input'>>;
   removeFavorite?: Resolver<ResolversTypes['Property'], ParentType, ContextType, RequireFields<MutationRemoveFavoriteArgs, 'propertyId'>>;
 };
 
@@ -660,7 +702,15 @@ export type QueryResolvers<ContextType = GraphQLContext, ParentType extends Reso
   neighborhoods?: Resolver<Array<ResolversTypes['Neighborhood']>, ParentType, ContextType>;
   property?: Resolver<Maybe<ResolversTypes['Property']>, ParentType, ContextType, RequireFields<QueryPropertyArgs, 'id'>>;
   propertyMapClusters?: Resolver<ResolversTypes['MapClusterResult'], ParentType, ContextType, RequireFields<QueryPropertyMapClustersArgs, 'bbox' | 'zoom'>>;
+  searchAlerts?: Resolver<Array<ResolversTypes['SearchAlert']>, ParentType, ContextType>;
   searchProperties?: Resolver<ResolversTypes['PropertyConnection'], ParentType, ContextType, RequireFields<QuerySearchPropertiesArgs, 'first' | 'sort'>>;
+};
+
+export type SearchAlertResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['SearchAlert'] = ResolversParentTypes['SearchAlert']> = {
+  channels?: Resolver<Array<ResolversTypes['AlertChannel']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  searchUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
 export type Resolvers<ContextType = GraphQLContext> = {
@@ -679,5 +729,6 @@ export type Resolvers<ContextType = GraphQLContext> = {
   Property?: PropertyResolvers<ContextType>;
   PropertyConnection?: PropertyConnectionResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  SearchAlert?: SearchAlertResolvers<ContextType>;
 };
 

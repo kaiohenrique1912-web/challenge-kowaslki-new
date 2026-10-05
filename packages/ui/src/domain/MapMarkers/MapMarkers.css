@@ -9,6 +9,7 @@
   color: var(--qa-color-text);
   font-family: var(--qa-font-family);
   font-weight: var(--qa-font-weight-bold);
+  white-space: nowrap;
   box-shadow: var(--qa-shadow-map);
   cursor: pointer;
   transition:
@@ -18,15 +19,15 @@
 }
 
 .qa-map-cluster--sm {
-  min-width: 36px;
-  height: 36px;
-  font-size: var(--qa-font-size-sm);
+  min-width: 38px;
+  height: 38px;
+  font-size: var(--qa-font-size-md);
 }
 
 .qa-map-cluster--md {
-  min-width: 44px;
-  height: 44px;
-  font-size: var(--qa-font-size-sm);
+  min-width: 42px;
+  height: 42px;
+  font-size: var(--qa-font-size-md);
 }
 
 .qa-map-cluster--lg {

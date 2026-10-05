@@ -131,8 +131,9 @@ export function ResultsList({ state, setState, neighborhoods, onHighlight, highl
     count: total ?? 0,
     types: state.filters.types,
     minBedrooms: state.filters.minBedrooms,
-    neighborhoodName: onlyNeighborhood?.name,
+    neighborhoodName: state.drawnArea ? undefined : onlyNeighborhood?.name,
     onlyFavorites: state.onlyFavorites,
+    drawnArea: Boolean(state.drawnArea),
   });
 
   const header = (

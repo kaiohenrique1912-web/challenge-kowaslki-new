@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Chip } from "../../components/Chip/Chip.tsx";
+import { IconButton } from "../../components/IconButton/IconButton.tsx";
 import { Input } from "../../components/Input/Input.tsx";
 import { Popover } from "../../components/Popover/Popover.tsx";
 import { cx } from "../../utils/cx.ts";
@@ -26,9 +27,9 @@ export type FilterBarProps = {
   openFilterId: string | null;
   onOpenFilterChange: (id: string | null) => void;
   onMoreFilters: () => void;
-  /** Quantos filtros estão ativos ao todo (aparece em "Mais filtros"). */
+  /** Quantos filtros estão ativos ao todo (lido por leitores de tela em "Mais filtros"). */
   activeCount?: number;
-  /** Conteúdo extra à direita. */
+  /** Conteúdo extra à direita (ex.: "Criar alerta de imóvel"). */
   trailing?: ReactNode;
   className?: string;
 };
@@ -48,6 +49,30 @@ export function FilterBar({
   trailing,
   className,
 }: FilterBarProps) {
+  const chipsRef = useRef<HTMLDivElement>(null);
+  const [overflow, setOverflow] = useState({ start: false, end: false });
+
+  // Setas ‹ › aparecem quando os chips não cabem (como no original).
+  useEffect(() => {
+    const el = chipsRef.current;
+    if (!el) return;
+    const update = () =>
+      setOverflow({
+        start: el.scrollLeft > 1,
+        end: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+      });
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, []);
+  const scrollChips = (direction: 1 | -1) =>
+    chipsRef.current?.scrollBy({ left: direction * 240, behavior: "smooth" });
+
   return (
     <section className={cx("qa-filter-bar", className)} aria-label="Filtros da busca">
       <div className="qa-filter-bar__location">
@@ -64,49 +89,66 @@ export function FilterBar({
             />
           ))}
       </div>
-      <div className="qa-filter-bar__chips">
-        {quickFilters.map((filter) => {
-          const open = openFilterId === filter.id;
-          const chip = (
-            <Chip
-              key={filter.id}
-              hasMenu
-              selected={filter.active}
-              menuOpen={open}
-              onClick={() => onOpenFilterChange(open ? null : filter.id)}
-            >
-              {filter.label}
-            </Chip>
-          );
-          return filter.panel ? (
-            <Popover
-              key={filter.id}
-              open={open}
-              onClose={() => onOpenFilterChange(null)}
-              label={filter.label}
-              anchor={chip}
-              footer={filter.panelFooter}
-            >
-              {filter.panel}
-            </Popover>
-          ) : (
-            <span key={filter.id} className="qa-filter-bar__chip">
-              {chip}
-            </span>
-          );
-        })}
+      <div className="qa-filter-bar__scroller">
+        {overflow.start && (
+          <IconButton
+            icon="chevronLeft"
+            label="Ver filtros anteriores"
+            variant="surface"
+            size="sm"
+            className="qa-filter-bar__arrow qa-filter-bar__arrow--start"
+            onClick={() => scrollChips(-1)}
+          />
+        )}
+        <div className="qa-filter-bar__chips" ref={chipsRef}>
+          {quickFilters.map((filter) => {
+            const open = openFilterId === filter.id;
+            const chip = (
+              <Chip
+                key={filter.id}
+                hasMenu
+                selected={filter.active}
+                menuOpen={open}
+                onClick={() => onOpenFilterChange(open ? null : filter.id)}
+              >
+                {filter.label}
+              </Chip>
+            );
+            return filter.panel ? (
+              <Popover
+                key={filter.id}
+                open={open}
+                onClose={() => onOpenFilterChange(null)}
+                label={filter.label}
+                anchor={chip}
+                footer={filter.panelFooter}
+              >
+                {filter.panel}
+              </Popover>
+            ) : (
+              <span key={filter.id} className="qa-filter-bar__chip">
+                {chip}
+              </span>
+            );
+          })}
+        </div>
+        {overflow.end && (
+          <IconButton
+            icon="chevronRight"
+            label="Ver mais filtros rápidos"
+            variant="surface"
+            size="sm"
+            className="qa-filter-bar__arrow qa-filter-bar__arrow--end"
+            onClick={() => scrollChips(1)}
+          />
+        )}
       </div>
-      <Chip
-        icon="sliders"
-        onClick={onMoreFilters}
-        selected={activeCount > 0}
-        aria-haspopup="dialog"
-      >
+      <Chip icon="sliders" onClick={onMoreFilters} aria-haspopup="dialog">
         Mais filtros
         {activeCount > 0 && (
-          <span className="qa-filter-bar__count">
-            {activeCount}
-            <span className="qa-visually-hidden"> ativos</span>
+          <span className="qa-visually-hidden">
+            {" "}
+            ({activeCount} {activeCount === 1 ? "ativo" : "ativos"})
           </span>
         )}
       </Chip>

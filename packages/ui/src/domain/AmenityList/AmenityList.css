@@ -6,7 +6,7 @@
 
 .qa-amenity-list__title {
   margin: 0 0 var(--qa-space-4);
-  font-size: var(--qa-font-size-xl);
+  font-size: var(--qa-font-size-lg);
   font-weight: var(--qa-font-weight-semibold);
 }
 

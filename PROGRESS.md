@@ -42,7 +42,17 @@
   lugares, "Ver favoritos" (`?favoritos=sim`, chip e link no cabeçalho). Revisão visual com os
   prints (título e selos do detalhe). Desempenho: cards memorizados, páginas sob demanda.
   7 componentes novos no `ui`. 170 testes + e2e com 20 fluxos passando. `README.md`.
-- [ ] **Etapa 7: Preparação para agentes e validação one-shot**
+- [x] **Etapa 7: Preparação para agentes e validação one-shot** — conferência visual com
+  Playwright (`bun run visual`: 13 cenas lado a lado com os prints do original) e correção das
+  diferenças: tokens e fonte do original (Albert Sans no lugar da Oatmeal Pro), cabeçalho com o
+  menu completo, 9 chips rápidos, painel à esquerda, mapa suavizado e mais denso, detalhe e home
+  como no original; features que faltavam: **desenhar área de busca** (polígono filtrado no SQL)
+  e **criar alerta de imóvel** (tabela `search_alerts`). Agentes: `CLAUDE.md` reescrito,
+  `docs/feature-recipe.md` (receita + checklist + exemplo resolvido), skills `nova-feature`,
+  `regras-imoveis` e `conferir-visual` em `.claude/skills/`; regras reutilizáveis
+  centralizadas (`PROPERTY_FIELD_LABELS`, `findNeighborhoodForPoint`, `property-row.ts`).
+  E2E migrado para Playwright (24 fluxos). 189 testes. Próximo: teste one-shot do cadastro em
+  sessão nova.
 
 ## Notas
 

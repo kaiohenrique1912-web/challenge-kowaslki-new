@@ -33,11 +33,12 @@ export function describeTypes(types: readonly PropertyType[]): string {
   return `${types.length} tipos`;
 }
 
+/** "1+ banheiros", "3+ quartos" — sempre no plural, como no original. */
 export const describeMin = {
-  bedrooms: (n: number) => `${n}+ ${n === 1 ? "quarto" : "quartos"}`,
-  bathrooms: (n: number) => `${n}+ ${n === 1 ? "banheiro" : "banheiros"}`,
-  suites: (n: number) => `${n}+ ${n === 1 ? "suíte" : "suítes"}`,
-  parkingSpaces: (n: number) => `${n}+ ${n === 1 ? "vaga" : "vagas"}`,
+  bedrooms: (n: number) => `${n}+ quartos`,
+  bathrooms: (n: number) => `${n}+ banheiros`,
+  suites: (n: number) => `${n}+ suítes`,
+  parkingSpaces: (n: number) => `${n}+ vagas`,
 };
 
 export type ActiveFilterChip = {
@@ -103,29 +104,58 @@ export function removeActiveFilter(filters: PropertyFilters, key: string): Prope
   return normalizeFilters(rest);
 }
 
-/** Texto dos chips rápidos da barra: o nome do filtro ou o valor escolhido. */
-export function quickFilterLabel(
-  id: "price" | "types" | "bedrooms" | "parking",
-  filters: PropertyFilters,
-): { label: string; active: boolean } {
+/** Chips rápidos da barra de filtros, na ordem do original, e as chaves que cada um controla. */
+export const QUICK_FILTERS = {
+  price: { name: "Valor", keys: ["price"] },
+  types: { name: "Tipos de imóvel", keys: ["types"] },
+  bedrooms: { name: "Quartos", keys: ["minBedrooms"] },
+  parking: { name: "Vagas de garagem", keys: ["minParkingSpaces"] },
+  bathrooms: { name: "Banheiros", keys: ["minBathrooms"] },
+  area: { name: "Área", keys: ["area"] },
+  furnished: { name: "Mobiliado", keys: ["furnished"] },
+  nearSubway: { name: "Próximo ao metrô", keys: ["nearSubway"] },
+  suites: { name: "Suítes", keys: ["minSuites"] },
+} as const satisfies Record<string, { name: string; keys: readonly (keyof PropertyFilters)[] }>;
+
+export type QuickFilterId = keyof typeof QUICK_FILTERS;
+export const QUICK_FILTER_IDS = Object.keys(QUICK_FILTERS) as QuickFilterId[];
+
+/** Texto do chip rápido: o nome do filtro ou o valor escolhido ("Quartos" / "3+ quartos"). */
+function quickFilterValue(id: QuickFilterId, f: PropertyFilters): string | undefined {
   switch (id) {
     case "price":
-      return filters.price
-        ? { label: describeRange(filters.price, formatCompactBRL), active: true }
-        : { label: "Valor", active: false };
+      return f.price && describeRange(f.price, formatCompactBRL);
     case "types":
-      return filters.types?.length
-        ? { label: describeTypes(filters.types), active: true }
-        : { label: "Tipos de imóvel", active: false };
+      return f.types?.length ? describeTypes(f.types) : undefined;
     case "bedrooms":
-      return filters.minBedrooms !== undefined
-        ? { label: describeMin.bedrooms(filters.minBedrooms), active: true }
-        : { label: "Quartos", active: false };
+      return f.minBedrooms === undefined ? undefined : describeMin.bedrooms(f.minBedrooms);
     case "parking":
-      return filters.minParkingSpaces !== undefined
-        ? { label: describeMin.parkingSpaces(filters.minParkingSpaces), active: true }
-        : { label: "Vagas de garagem", active: false };
+      return f.minParkingSpaces === undefined
+        ? undefined
+        : describeMin.parkingSpaces(f.minParkingSpaces);
+    case "bathrooms":
+      return f.minBathrooms === undefined ? undefined : describeMin.bathrooms(f.minBathrooms);
+    case "area":
+      return f.area && describeRange(f.area, formatArea);
+    case "furnished":
+      return f.furnished === undefined ? undefined : f.furnished ? "Mobiliado" : "Sem mobília";
+    case "nearSubway":
+      return f.nearSubway === undefined
+        ? undefined
+        : f.nearSubway
+          ? "Próximo ao metrô"
+          : "Longe do metrô";
+    case "suites":
+      return f.minSuites === undefined ? undefined : describeMin.suites(f.minSuites);
   }
+}
+
+export function quickFilterLabel(
+  id: QuickFilterId,
+  filters: PropertyFilters,
+): { label: string; active: boolean } {
+  const value = quickFilterValue(id, filters);
+  return value ? { label: value, active: true } : { label: QUICK_FILTERS[id].name, active: false };
 }
 
 /**
@@ -140,6 +170,8 @@ export function searchResultsHeading(p: {
   neighborhoodName?: string;
   /** "Ver favoritos" ativo: o subtítulo começa com "nos seus favoritos ·". */
   onlyFavorites?: boolean;
+  /** Busca por área desenhada: "à venda na área desenhada no mapa". */
+  drawnArea?: boolean;
 }): { title: string; subtitle: string } {
   const onlyType = p.types?.length === 1 ? p.types[0] : undefined;
   const subject =
@@ -150,13 +182,14 @@ export function searchResultsHeading(p: {
       : onlyType
         ? PROPERTY_TYPE_PLURAL_LABELS[onlyType]
         : "Imóveis";
-  const place = p.neighborhoodName
-    ? `${p.neighborhoodName}, ${CITY}, ${STATE}`
-    : `${CITY}, ${STATE}`;
+  const place = p.drawnArea
+    ? "na área desenhada no mapa"
+    : `em ${p.neighborhoodName ? `${p.neighborhoodName}, ` : ""}${CITY}, ${STATE}`;
   const complement =
     p.minBedrooms !== undefined ? `com ${pluralize(p.minBedrooms, "quarto", "quartos")} ` : "";
   return {
-    title: `${p.count.toLocaleString("pt-BR")} ${subject}`,
-    subtitle: `${p.onlyFavorites ? "nos seus favoritos · " : ""}${complement}à venda em ${place}`,
+    // Como no original: "226.498 apartamentos" (minúsculas).
+    title: `${p.count.toLocaleString("pt-BR")} ${subject.toLocaleLowerCase("pt-BR")}`,
+    subtitle: `${p.onlyFavorites ? "nos seus favoritos · " : ""}${complement}à venda ${place}`,
   };
 }

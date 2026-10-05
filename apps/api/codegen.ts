@@ -19,6 +19,7 @@ const config: CodegenConfig = {
           Property: "../../modules/properties/property-record.ts#PropertyRecord",
           PropertyConnection: "../../modules/properties/property-record.ts#PropertyConnectionModel",
           Neighborhood: "../../modules/neighborhoods/neighborhood-record.ts#NeighborhoodRecord",
+          SearchAlert: "../../modules/search-alerts/search-alerts.repository.ts#SearchAlertRecord",
         },
       },
     },

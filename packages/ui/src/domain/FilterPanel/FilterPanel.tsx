@@ -3,6 +3,7 @@ import {
   AMENITY_CATEGORIES,
   AMENITY_CATEGORY_LABELS,
   type AmenityCode,
+  FILTER_SLIDER_SCALES,
   formatBRL,
   MIN_COUNT_FILTER_MAX,
   normalizeFilters,
@@ -44,12 +45,8 @@ const fromRangeValue = (range: RangeValue): Range | undefined => {
   return result.min === undefined && result.max === undefined ? undefined : result;
 };
 
-/** Escalas dos sliders (os campos de texto aceitam qualquer valor). */
-export const RANGE_SCALES = {
-  price: { max: 5_000_000, step: 50_000 },
-  monthlyCost: { max: 10_000, step: 100 },
-  area: { max: 1_000, step: 10 },
-} as const;
+/** Escalas dos sliders — regra de `shared` (FILTER_SLIDER_SCALES), reexportada por conveniência. */
+export const RANGE_SCALES = FILTER_SLIDER_SCALES;
 
 export function PriceFilter({ value, onChange }: FilterSectionProps) {
   return (

@@ -1,150 +1,122 @@
 # CLAUDE.md
 
-Clone da **busca de imóveis à venda do QuintoAndar** (São Paulo), com 50k+ imóveis, rodando
-100% local. O projeto também serve de base para que um agente construa features novas
-(ex.: cadastro de imóveis) em uma única instrução, respeitando as regras e o design existentes.
+Clone da **busca de imóveis à venda do QuintoAndar** (São Paulo, 60 mil imóveis, 100% local).
+Também é a base para um agente criar features novas em **uma instrução**, respeitando as regras
+e o design existentes.
 
-## ⚠️ Regra obrigatória
+## ⚠️ Antes de escrever código
 
-**Antes de implementar qualquer feature, leia [docs/business-rules.md](docs/business-rules.md)
-e [docs/architecture.md](docs/architecture.md).** Eles definem o domínio (campos, faixas,
-filtros, ordenações, textos exibidos) e o system design (camadas, schema GraphQL, modelo de
-dados, paginação, mapa, convenções). Se a sua mudança alterar uma regra ou decisão, atualize o
-documento no mesmo commit.
+1. Leia [docs/business-rules.md](docs/business-rules.md) (o *quê*: campos, faixas, filtros,
+   textos) e [docs/architecture.md](docs/architecture.md) (o *como*: camadas, schema, banco,
+   mapa, URL). Mexer em tela? Leia também [docs/design-system.md](docs/design-system.md).
+2. Feature nova? Siga [docs/feature-recipe.md](docs/feature-recipe.md) — ou a skill
+   `/nova-feature`. Ela traz o passo a passo, o checklist de "pronto" e um exemplo resolvido.
+3. Mudou uma regra ou decisão? Atualize o doc no **mesmo commit**.
 
-Outros documentos:
-- [README.md](README.md) — visão geral, como rodar do zero e decisões técnicas.
-- [docs/feature-analysis.md](docs/feature-analysis.md) — levantamento do site original.
-- [docs/reference/](docs/reference/) — prints do original (fonte para fidelidade visual).
-- [PROGRESS.md](PROGRESS.md) — etapas do projeto e o que já está pronto.
-- [docs/design-system.md](docs/design-system.md) — tokens, componentes, quando usar cada um,
-  regras de acessibilidade e receita para criar componente. **Leia antes de mexer em tela.**
+Skills do projeto (`.claude/skills/`): `nova-feature` (feature ponta a ponta),
+`regras-imoveis` (onde está cada regra de imóvel no código), `conferir-visual` (compara o
+site com os prints do original e corrige).
+
+Outros docs: [README.md](README.md) (visão geral, decisões), [PROGRESS.md](PROGRESS.md)
+(etapas), [docs/feature-analysis.md](docs/feature-analysis.md) (levantamento do original),
+[docs/reference/](docs/reference/) (prints do original — fonte da fidelidade visual).
 
 ## Stack
 
-| Camada | Tecnologia |
+Bun (workspaces, runtime, testes) · Elysia + GraphQL Yoga, schema-first + GraphQL Code
+Generator · SQLite (`bun:sqlite`) · React + Vite + React Router + TanStack Query · Leaflet +
+OpenStreetMap · design system próprio (`packages/ui`) + Storybook · zod (em `shared`) ·
+Biome · Playwright (`playwright-core` com o Chrome/Edge instalado). Só Bun ≥ 1.4 é
+pré-requisito (sem Node, sem Docker); funciona em Windows, macOS e Linux.
+
+## Onde fica cada coisa
+
+```
+packages/shared  regras puras: enums, faixas, labels pt-BR, zod, formatadores, contrato da URL
+packages/ui      design system: tokens + componentes React (sem rede) + stories
+apps/api         Elysia + GraphQL: resolvers → services → repositories → SQLite; seed
+apps/web         páginas React: home, busca, detalhe; e2e (smoke + visual)
+docs/            regras, arquitetura, design system, receita, aprendizado, prints
+```
+
+Dependências: `web → ui → shared` e `api → shared`. Nunca o contrário. Pacotes `@qa/api`,
+`@qa/web`, `@qa/ui`, `@qa/shared`; `ui`/`shared` exportam TS direto (sem build). Dependência
+nova: `bun add <pacote>` **dentro** da pasta do workspace.
+
+| Preciso de… | Arquivo |
 |---|---|
-| Runtime / pacotes | Bun (workspaces) |
-| Backend | Elysia + GraphQL Yoga (`@elysiajs/graphql-yoga`), schema-first (SDL em `apps/api/src/graphql/schema/*.graphql`) + GraphQL Code Generator (Etapa 3) |
-| Banco | SQLite via `bun:sqlite` (arquivo em `apps/api/data/app.db`, sem Docker) |
-| Frontend | React + Vite + TypeScript, React Router, TanStack Query |
-| Mapa | Leaflet + tiles OpenStreetMap; clusters agregados no servidor |
-| Design system | `packages/ui` (tokens CSS + componentes React) + Storybook |
-| Validação | zod, em `packages/shared` (usada por api e web) |
-| Testes / lint | `bun test` / Biome |
+| Regras de imóvel (tipos, faixas, comodidades, derivados, textos) | `packages/shared/src/domain/`, `format/` (mapa completo: skill `regras-imoveis`) |
+| Validação de entrada (API e formulários) | `packages/shared/src/validation/` (`propertyInputSchema`, `searchFiltersSchema`, `searchAlertInputSchema`) |
+| Estado da busca ⇄ URL | `packages/shared/src/search/` (`url.ts` é o único que lê/escreve a URL) |
+| Contrato GraphQL | `apps/api/src/graphql/schema/*.graphql`; `generated/` vem do `bun run codegen` |
+| Erros da API | `apps/api/src/graphql/errors.ts` (`parseOrThrow`, `badUserInput`, `notFound`) |
+| Módulos da API | `apps/api/src/modules/<módulo>/` (`*.resolvers.ts` → `*.service.ts` → `*.repository.ts` + `*.test.ts`): `properties`, `neighborhoods`, `locations`, `favorites`, `search-alerts`, `photos`, `health` |
+| Filtros de imóvel → SQL | `apps/api/src/modules/properties/property-where.ts` (único lugar) |
+| Gravar imóvel (colunas) | `apps/api/src/modules/properties/property-row.ts`; derivados: `apps/api/src/db/maintenance/recompute.ts` |
+| Banco | `apps/api/src/db/` (`migrations/NNNN_*.sql`, `client.ts`, `seed/`) |
+| Testes da API | `apps/api/src/testing/test-app.ts` (`createTestApp()` com 5.000 imóveis, `gql()`, `TEST_NOW`) |
+| Operações GraphQL do web | `apps/web/src/graphql/operations.ts`; cliente `lib/graphql-client.ts` (`graphqlRequest`) |
+| Páginas do web | `apps/web/src/features/` (`home/`, `search/`, `property/`, `favorites/`, `search-alerts/`, `layout/`); rotas em `router.tsx` |
+| Cabeçalho e "fora do escopo" | `features/layout/SiteHeader.tsx`, `features/layout/out-of-scope.tsx` (`useOutOfScope`) |
+| Mapa | `features/search/SearchMap.tsx`, `lib/map-tiles.ts`, `styles/map-markers.css` |
+| Componentes | `packages/ui/src/components/` (base), `domain/` (imóveis), `index.ts` (exports) |
+| Tokens | `packages/ui/src/tokens/tokens.ts` (fonte; `tokens.css` é gerado) |
+| Testes no navegador | `apps/web/e2e/smoke.ts` (fluxos), `visual.ts` (× original), `browser.ts` |
 
-## Estrutura
-
-```
-apps/api         servidor Elysia + GraphQL (resolvers → services → repositories → SQLite), seed
-apps/web         aplicação React (páginas de busca, detalhe, favoritos)
-packages/ui      design system + Storybook (sem chamadas de rede)
-packages/shared  enums, tipos, validações zod, labels pt-BR, formatadores, contrato da URL
-docs/            documentação e prints de referência
-```
-
-Direção de dependências: `web → ui → shared` e `api → shared`. Nunca o contrário.
-
-Os pacotes do workspace se chamam `@qa/api`, `@qa/web`, `@qa/ui` e `@qa/shared`. `ui` e
-`shared` exportam o código-fonte TypeScript direto (sem build): importe `@qa/shared` e
-`@qa/ui` (CSS dos tokens: `@qa/ui/tokens.css`). Para adicionar uma dependência, rode
-`bun add <pacote>` **dentro da pasta do workspace** que a usa.
-
-Arquivos-chave hoje:
-- `apps/api/src/app.ts` — `createApp({ db, now })`: schema Yoga + rotas (usado nos testes).
-- `apps/api/src/graphql/schema/*.graphql` — SDL (fonte da verdade); `graphql/generated/` —
-  tipos `Resolvers` gerados (`bun run codegen`); `graphql/resolvers.ts` registra os módulos;
-  `graphql/errors.ts` — `parseOrThrow(schemaZod, args)` e `badUserInput()`;
-  `graphql/loaders.ts` — DataLoaders por request.
-- `apps/api/src/modules/<módulo>/` — `*.resolvers.ts` (fino) → `*.service.ts` (regras) →
-  `*.repository.ts` (SQL). Busca: `modules/properties/` (`property-where.ts` = filtros → SQL,
-  `sort.ts` = ordenações + cursor). Também `neighborhoods/`, `locations/` (autocomplete).
-- `apps/api/src/testing/test-app.ts` — `createTestApp()` (banco em memória com 5.000 imóveis,
-  relógio fixo) e `gql(app, query, variables, headers)` para testes de ponta a ponta.
-- `apps/api/src/db/` — `client.ts` (`openDatabase`), `migrate.ts`, `migrations/*.sql`
-  (schema SQLite), `seed/` (gerador de 60k imóveis), `maintenance/recompute.ts` (derivados).
-- `apps/api/src/modules/photos/` — fotos placeholder em `/static/photos/{room}-{variant}.svg`.
-- `packages/shared/src/domain/` — enums, comodidades, faixas, derivados (badges, relevância,
-  aluguel estimado), regras da busca (`search.ts`), grade do mapa (`map-grid.ts`);
-  `packages/shared/src/validation/` — `propertyInputSchema`, `searchArgsSchema` e afins;
-  `packages/shared/src/format/` — `formatBRL`, `propertyTitle`, `propertyHeadline`, `slugify`.
-- `apps/web/src/graphql/operations.ts` — todas as operações GraphQL do web (`graphql(...)`);
-  `generated/` vem do `bun run codegen`. `apps/web/src/lib/graphql-client.ts` —
-  `graphqlRequest(documento, variáveis)` tipado, com `x-user-id` e erros com `field`.
-- `apps/web/src/features/search/` — página de busca: `use-search-state.ts` (estado = URL),
-  `queries.ts` (hooks TanStack Query), `SearchFilters`, `ResultsList`, `SearchMap` (Leaflet),
-  `LocationSearch`. Rotas em `apps/web/src/router.tsx`.
-- `apps/web/src/features/property/` — página de detalhe; `features/favorites/use-favorites.ts`
-  — `useToggleFavorite()` (otimista) e `useFavoritesCount()`. Favoritos na API:
-  `apps/api/src/modules/favorites/`.
-- `apps/web/e2e/smoke.ts` — teste de ponta a ponta no navegador real (20 fluxos).
-- `packages/ui/src/tokens/tokens.ts` — tokens (fonte única; `tokens.css` é gerado);
-  `packages/ui/src/components/` — componentes base; `packages/ui/src/domain/` — componentes de
-  imóveis (`PropertyCard`, `FilterBar`, `MapCluster`…); `packages/ui/src/index.ts` — exports;
-  `packages/ui/src/stories.test.tsx` — renderiza todas as stories e checa acessibilidade.
-
-## Comandos
-
-Pré-requisito único: **Bun ≥ 1.4** (Node não é necessário). Rode tudo na raiz do repositório.
+## Comandos (na raiz)
 
 | Ação | Comando |
 |---|---|
-| Instalar dependências | `bun install` |
-| Rodar api + web | `bun run dev` → api em http://localhost:4000/graphql (GraphiQL no navegador), web em http://localhost:5173 |
-| Só api / só web | `bun run dev:api` / `bun run dev:web` |
-| Criar/atualizar o banco (migrações) | `bun run db:migrate` |
-| Recriar o banco com 60k imóveis (seed 42) | `bun run seed` (~10 s; apaga o banco antes) |
-| Seed com outros parâmetros | `cd apps/api && bun src/db/seed/index.ts --count 5000 --seed 7` |
-| Recalcular medianas, aluguel estimado e relevância | `bun run recompute-scores` |
-| Testes (todos os pacotes) | `bun test` |
-| Typecheck (todos os pacotes) | `bun run typecheck` |
-| Lint / corrigir formatação | `bun run lint` / `bun run format` (Biome) |
-| Storybook | `bun run storybook` → http://localhost:6006 |
-| Build do Storybook | `bun run build-storybook` |
-| Regerar `tokens.css` após editar `tokens.ts` | `cd packages/ui && bun run tokens` |
-| Gerar tipos GraphQL (api + web) após mudar o SDL ou `operations.ts` | `bun run codegen` |
-| Medir a busca com o banco de 60k | `bun run bench` (rode o seed antes) |
-| Teste de ponta a ponta no navegador (Chrome/Edge instalado) | `bun run e2e` (com `bun run dev` rodando; prints em `apps/web/e2e/screenshots/`) |
+| Instalar / primeira vez | `bun install` → `bun run seed` → `bun run dev` → http://localhost:5173 |
+| api + web | `bun run dev` (api :4000 com GraphiQL em `/graphql`, web :5173) — só um: `dev:api` / `dev:web` |
+| Banco | `bun run db:migrate`; recriar com 60k imóveis: `bun run seed` (~10 s, apaga antes); derivados: `bun run recompute-scores` |
+| Testes / tipos / estilo | `bun test` · `bun run typecheck` · `bun run lint` (`bun run format` corrige) |
+| Tipos GraphQL (após mudar SDL ou `operations.ts`) | `bun run codegen` |
+| Tokens (após editar `tokens.ts`) | `cd packages/ui && bun run tokens` |
+| Storybook | `bun run storybook` (:6006) |
+| Navegador real (com `dev` rodando) | `bun run e2e` (prints em `apps/web/e2e/screenshots/`) · `bun run visual [cena]` (lado a lado com o original em `apps/web/e2e/visual/`) |
+| Desempenho | `bun run bench` |
 
-Primeira vez rodando o projeto: `bun install` → `bun run seed` → `bun run dev` → abra
-http://localhost:5173.
+Notas: o `dev` da api roda a partir da raiz de propósito (o watch precisa ver
+`packages/shared`). Banco em `apps/api/data/app.db` (`DB_PATH` sobrescreve). Vite repassa
+`/graphql` e `/static` para a api. Servidores que você subir em segundo plano: derrube ao
+terminar (portas 4000 e 5173).
 
-O `dev` da api roda a partir da raiz (`cd ../.. && bun --watch …`) de propósito: de dentro de
-`apps/api` o watch não enxerga `packages/shared` e a api ficaria com regras antigas.
-
-Portas: api `4000` (`PORT`), web `5173` (o Vite repassa `/graphql` e `/static` para `API_URL`,
-padrão `http://localhost:4000`), Storybook `6006`. Banco em `apps/api/data/app.db`
-(sobrescreva com `DB_PATH`). Nos testes use `openDatabase(":memory:")` + `runMigrations`.
-
-## Convenções (resumo — detalhes em docs/architecture.md §11)
+## Convenções (detalhes em architecture.md §11)
 
 - TypeScript strict, sem `any`; exports nomeados; arquivos kebab-case, componentes PascalCase.
-- Código e commits em inglês; textos de UI, erros para o usuário e docs em português.
-- API em camadas: **resolver** (fino) → **service** (validação zod + regras) →
-  **repository** (só SQL parametrizado). Filtros de imóveis só em `property-where.ts`.
-- Regras de negócio, enums, faixas, labels e formatação **só** em `packages/shared`. Nunca
-  redefina um enum, label ou faixa em `api` ou `web` — importe.
-- UI só com componentes de `packages/ui`; faltou um componente? Crie lá, com story cobrindo os
-  estados (receita em docs/design-system.md §6). CSS de componente usa **só tokens**
-  (`var(--qa-…)`); classes BEM com prefixo `qa-`. `ui` não faz chamadas de rede.
-- Schema GraphQL (SDL) é a fonte da verdade do contrato; após alterá-lo rode `bun run codegen`.
-  Resolvers são tipados com `Resolvers` gerado; nunca edite `graphql/generated/`.
-- Toda entrada da API é validada no serviço com um schema zod de `shared` via `parseOrThrow`
-  (erro `BAD_USER_INPUT` + `extensions.field`, mensagem em pt-BR).
-- Resolver nunca consulta o banco por item (N+1): use/estenda `graphql/loaders.ts`.
-- Mudança no banco = **nova** migração `apps/api/src/db/migrations/NNNN_nome.sql`; nunca edite
-  uma migração já commitada. Gravou/editou imóvel? Recalcule os derivados
-  (`recomputeDerivedFields`) e valide a entrada com `propertyInputSchema`.
-- Estado da busca vive na URL: `useSearchState()` no web, contrato em
-  `packages/shared/src/search/url.ts`. Filtro novo = campo em `PropertyFilters` + `url.ts` +
-  `toApiFilters` + `property-where.ts` + seção no `FilterPanel` (+ testes de cada um).
-- Toda tela com dados tem estados de carregando, vazio e erro.
-- Mudou tela? Rode `bun run e2e` e confira os prints — typecheck e testes não pegam layout.
-- Teste junto do código (`*.test.ts`); toda regra nova em `shared` tem teste.
+- Código e commits em inglês; UI, erros para o usuário e docs em português.
+- **Regras só em `packages/shared`** (enum, faixa, label, texto exibido, validação), com
+  teste. Nunca redefina em `api`/`web`/`ui` — importe.
+- **API em camadas:** resolver (fino) → service (`parseOrThrow` com schema de `shared`;
+  erro `BAD_USER_INPUT` + `extensions.field` em pt-BR) → repository (só SQL parametrizado).
+  Sem N+1: use `graphql/loaders.ts`. Usuário = header `x-user-id` (`ctx.userId`); relógio =
+  `ctx.now`.
+- **SDL é o contrato**; mudou → `bun run codegen`; nunca edite `generated/`.
+- **Banco:** mudança = migração **nova**; nunca edite uma commitada. Gravou imóvel → valide
+  com `propertyInputSchema`, grave com `toPropertyRow` e rode `recomputeDerivedFields`.
+- **Tela:** só componentes de `packages/ui` (faltou? crie lá com story — design-system.md §6);
+  CSS de componente só com tokens, BEM `qa-`; no web, CSS só de layout. Toda tela com dados
+  tem carregando, vazio e erro. O que existe no original e não aqui usa `useOutOfScope()`.
+- **Busca:** estado na URL (`useSearchState`). Filtro novo = `PropertyFilters` + `url.ts` +
+  `toApiFilters` + `property-where.ts` + seção no `FilterPanel` (+ testes).
+- Mudou tela → `bun run e2e` e confira os prints; tem print do original → `bun run visual`.
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
+
+## Feature nova em 9 passos (resumo de docs/feature-recipe.md)
+
+1. **Contexto:** docs + print em `docs/reference/` + o que já existe para reusar.
+2. **shared:** regras, enums, labels e schema zod novos, com testes.
+3. **Banco:** migração nova.
+4. **GraphQL:** SDL `<feature>.graphql` → `bun run codegen`.
+5. **API:** módulo repository → service → resolvers (+ registro em `graphql/resolvers.ts`) + testes.
+6. **ui:** componentes que faltarem, com stories.
+7. **web:** operações → hooks → página/rota → ligar o ponto de entrada (menu/aba/botão).
+8. **Provar:** `format`, `lint`, `typecheck`, `bun test`, `bun run e2e` (+ fluxo novo no smoke).
+9. **Docs:** business-rules, architecture, design-system, este arquivo, README; commit `feat:`.
 
 ## Ao terminar uma tarefa
 
-1. `bun test` e `bun run typecheck` passando.
+1. `bun run lint`, `bun run typecheck` e `bun test` passando (e `bun run e2e` se mexeu em tela).
 2. Docs atualizados se regra/decisão mudou.
 3. `PROGRESS.md` atualizado se a tarefa faz parte de uma etapa.

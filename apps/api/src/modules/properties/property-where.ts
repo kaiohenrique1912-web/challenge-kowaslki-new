@@ -1,5 +1,5 @@
 import type { SQLQueryBindings } from "bun:sqlite";
-import { publishedWithinStart, type SearchFilters } from "@qa/shared";
+import { polygonBounds, publishedWithinStart, type SearchFilters } from "@qa/shared";
 
 /**
  * ÚNICO lugar que traduz filtros de busca em SQL (docs/architecture.md §5.2). Lista, contagem
@@ -38,6 +38,19 @@ export function buildPropertyWhere(
   if (filters.bbox) {
     const { south, north, west, east } = filters.bbox;
     add("p.lat BETWEEN ? AND ? AND p.lng BETWEEN ? AND ?", south, north, west, east);
+  }
+  if (filters.polygon?.length) {
+    // Retângulo do polígono primeiro (usa o índice de lat/lng); depois o teste do raio: o ponto
+    // está dentro se cruza um número ímpar de arestas (mesma conta de isInsidePolygon em shared).
+    const { south, north, west, east } = polygonBounds(filters.polygon);
+    add("p.lat BETWEEN ? AND ? AND p.lng BETWEEN ? AND ?", south, north, west, east);
+    const edges = filters.polygon
+      .map((a, i, all) => [a, all[(i + 1) % all.length] ?? a] as const)
+      .filter(([a, b]) => a.lat !== b.lat);
+    add(
+      `(${edges.map(() => "((? > p.lat) <> (? > p.lat) AND p.lng < ? + (p.lat - ?) * ?)").join(" + ")}) % 2 = 1`,
+      ...edges.flatMap(([a, b]) => [a.lat, b.lat, a.lng, a.lat, (b.lng - a.lng) / (b.lat - a.lat)]),
+    );
   }
   if (filters.types?.length) {
     add(`p.type IN (${placeholders(filters.types.length)})`, ...filters.types);
